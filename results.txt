@@ -1,0 +1,21 @@
+Number of Processors Availabe: 	12
+
+Number of MC trials: 	500
+
+Signal Dimension: 	1000
+
+Number of Faulty Cores: 	7
+
+Number of Slow Cores: 	3
+
+Parameter to Sweep: Cores:
+12	
+Sto_IHT Metrics: 
+337(1,326)	
+Parallel Sto_IHT Metrics: 
+284(0.996,3.4e+03)	
+Tally Sto_IHT Metrics: 
+144(0.992,1.15e+03)	
+Mojority:  
+117(1,1.04e+03)	
+
