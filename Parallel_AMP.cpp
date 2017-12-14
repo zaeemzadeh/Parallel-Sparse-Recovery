@@ -142,9 +142,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
 
-	omp_lock_t deque_lock;	
 	omp_lock_t data_lock;
-	omp_init_lock(&deque_lock);
 	omp_init_lock(&data_lock);
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
@@ -166,7 +164,6 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 		y_block[b]  = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
 		z_t_block[b]= y_block[b];
 	}
-	cout << "keep the light in" << endl << flush;
 
 	unsigned int num_processed_blocks = 0;
 	// parallel section of the code starts here
@@ -180,10 +177,13 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 		//AT processor p:
 		if (p > 0){ 
 			i++;
-			int block = p-1;
+			int block;
+			#pragma omp critical
+			{block = num_processed_blocks;}
 			z_t_block[block] = y_block[block] - A_block[block]*x_t + z_t_block[block] * g_t / M;
-			pseudo_data_block[block] =  A_block[block].t() * z_t_block[block];
-			num_processed_blocks++;
+			pseudo_data_block[block] =  A_block[block].t() * z_t_block[block];			
+			#pragma omp critical
+			{num_processed_blocks++;}
 			new_data_ready = false;
 		}
 
@@ -206,7 +206,9 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
 			}
-			new_data_ready = true;
+			new_data_ready = true;	
+			#pragma omp critical
+			{num_processed_blocks = 0;}
 		}
 		
 		//}
@@ -215,7 +217,6 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	// parallel section of the code ends here
 
 	}
-	omp_destroy_lock(&deque_lock);
 	omp_destroy_lock(&data_lock);
 
 	num_iters = i;
