@@ -78,7 +78,7 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	Ln_Q(zero_indices,U) += expected_ln_beta_dist(pos_count(zero_indices),neg_count(zero_indices)); 	
 	Ln_Q(one_indices,U)  += expected_ln_beta_dist(neg_count(one_indices),pos_count(one_indices));  
 
-
+ 
 	// evaluate update rules for U = 1
 	U.ones();
 	// prior term
@@ -98,7 +98,7 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	// using coefficient reliability
 	// prior term (XXX: comment tu use the prevoius value as prior)
 	reliability_pos = 1;
-	reliability_neg = 1;
+	reliability_neg = 1; 
 	// liklihood term (coefficient reliability)
 	reliability_pos += sum(expected_u(obs_indices));	
 	reliability_neg += sum(1 - expected_u(obs_indices));
