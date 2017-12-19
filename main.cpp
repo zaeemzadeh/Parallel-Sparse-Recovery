@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 	alg_names.push_back("Async_MP_AMP");
 
 	string parameter_to_sweep = "Cores";
-	vec parameter_to_sweep_values = linspace(2,2,1);	
+	vec parameter_to_sweep_values = linspace(12,12,1);	
 	vector <vector<performance_metrics>> sweep_metrics(parameter_to_sweep_values.n_elem);
 
 	cout << setprecision(3);

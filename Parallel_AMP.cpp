@@ -82,7 +82,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
-	const unsigned int P = simulation_params.num_cores-1;
+	const unsigned int P = simulation_params.num_cores;
 	unsigned int i = 0;
 	vec x_t(N,fill::zeros);
 	double g_t = M;
@@ -96,25 +96,24 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	const int p = omp_get_thread_num();
 	 mat A_p; 
 	 vec y_p; 
-	if (p > 0){
-		A_p = A.rows((M*(p-1))/P , (M*p)/P -1 );
-		y_p = y.subvec( (M*(p-1))/P  , (M*p)/P -1 );
-	}
+	
+	A_p = A.rows(M*p/P , M*(p+1)/P -1 );
+	y_p = y.subvec( M*p/P  , M*(p+1)/P -1 );
+	
 	vec z_t_p = y_p;
 	// R_MP_AMP itearations
 	while(!done){
 
 		//AT processor p:
-		if (p > 0){ 
-			i++;
-			z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
-			pseudo_data[p-1] = A_p.t() * z_t_p + x_t/P;
-		}
+		i++;
+		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
+		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
+		
 
 		#pragma omp barrier
 		//AT fusion center:
-		if (p == 0)
-		{
+		#pragma omp single
+		{	
 			vec pseudo_data_total(N,fill::zeros);
 			for (unsigned int j = 0; j < P; j++){
 				pseudo_data_total = pseudo_data_total + pseudo_data[j];
@@ -142,15 +141,14 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
 
-	omp_lock_t data_lock;
-	omp_init_lock(&data_lock);
+	//cout << endl;
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
-	const unsigned int P = simulation_params.num_cores-1;
-	const unsigned int num_blocks = simulation_params.num_cores-1;	
+	const unsigned int P = simulation_params.num_cores;
+	const unsigned int num_blocks = P;	
 	unsigned int i = 0;
 	vec x_t(N,fill::zeros);
-	bool new_data_ready = true;
+	bool new_data_ready = false;
 	bool done = false;
 	double g_t = M;
 	double tau = 1;
@@ -159,43 +157,52 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	vector <vec> pseudo_data_block (num_blocks);
 	vector <vec> z_t_block (num_blocks);
 
-	for (unsigned int b = 0; b < num_blocks; b++){
-		A_block[b]  = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );
-		y_block[b]  = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
-		z_t_block[b]= y_block[b];
-	}
 
 	unsigned int num_processed_blocks = 0;
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
+	#pragma omp for 
+	for (unsigned int b = 0; b < num_blocks; b++){
+		A_block[b]  = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );
+		y_block[b]  = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
+		z_t_block[b]= y_block[b];
+		//cout << "Block #" << b << " " << A_block[b-1].n_rows << endl;
+	}
 	// initializing variables in local memory
-	const int p = omp_get_thread_num();
-	// R_MP_AMP itearations
+	// const int p = omp_get_thread_num();
+	// Async_MP_AMP itearations
 	while(!done){
 
 		//AT processor p:
-		if (p > 0){ 
+		while (!new_data_ready) { 
+			unsigned int block;
+			#pragma omp critical
+			{
+			block = num_processed_blocks;
+			num_processed_blocks++;	
+			if (num_processed_blocks >= num_blocks){
+				new_data_ready = true;					
+			}	
+			}
+			if (block < num_blocks)	{
 			i++;
-			int block;
-			#pragma omp critical
-			{block = num_processed_blocks;}
-			z_t_block[block] = y_block[block] - A_block[block]*x_t + z_t_block[block] * g_t / M;
-			pseudo_data_block[block] =  A_block[block].t() * z_t_block[block];			
-			#pragma omp critical
-			{num_processed_blocks++;}
-			new_data_ready = false;
+			//cout << i << ' ' << omp_get_thread_num() << ' ' << block << flush ;
+			z_t_block[block] = y_block[block] - A_block[block]*x_t + z_t_block[block] * g_t / M;	
+			pseudo_data_block[block] =  A_block[block].t() * z_t_block[block];
+			//cout << "DONE!" << endl << flush; ;	
+			}
 		}
 
 		//AT fusion center:
 		#pragma omp barrier
-		//omp_set_lock(&deque_lock);
 
-		if (p == 0 && (num_processed_blocks >= num_blocks))
+		#pragma omp single
 		{
-			vec pseudo_data_total(N,fill::zeros);
-
+			//cout << "Fusion Center" << endl << flush;
+			vec pseudo_data_total(N,fill::zeros);			
 			for (unsigned int b = 0; b < num_blocks; b++){
+				//cout << "Block #" << b << " " << pseudo_data_block[b].n_rows << endl << flush;
 				pseudo_data_total = pseudo_data_total + pseudo_data_block[b];
 			}
 			pseudo_data_total = pseudo_data_total + x_t;
@@ -205,104 +212,19 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 		
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
-			}
-			new_data_ready = true;	
-			#pragma omp critical
-			{num_processed_blocks = 0;}
+			}	
+			num_processed_blocks = 0;
+			new_data_ready = false;
 		}
 		
-		//}
+
 		#pragma omp barrier
 	}
 	// parallel section of the code ends here
 
 	}
-	omp_destroy_lock(&data_lock);
 
 	num_iters = i;
 	return x_t;
 }
 
-/*
-vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
-	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
-
-	const unsigned int N = A.n_cols;
-	const unsigned int M = y.n_elem;
-	const unsigned int P = simulation_params.num_cores-1;
-	unsigned int i = 0;
-	vector <vec> deriv_shared (P,vec(N,fill::zeros));
-	vec deriv_total (N,fill::zeros);
-	vec x_total (N,fill::zeros);
-	bool done = false;
-	vec tau (N,fill::ones);
-	double g_t = M;
-	// parallel section of the code starts here
-	#pragma omp parallel num_threads(simulation_params.num_cores)
-	{
-	// initializing variables in local memory
-	const int p = omp_get_thread_num();
-	mat A_p; 
-	vec y_p; 
-	vec pseudo_data_p (N,fill::zeros);
-	vec x_t_p (N,fill::zeros);
-	vec deriv_local (N,fill::zeros);
-	if (p > 0){
-		A_p = A.rows((M*(p-1))/P , (M*p)/P -1 );
-		y_p = y.subvec( (M*(p-1))/P  , (M*p)/P -1 );
-	}
-	 if (p == 0){
-		A_p = A;
-		y_p = y;
-	}
-	vec z_t_p = y_p;
-	while(!done){
-		i++;
-
-		//AT processor p:
-		if (p == 1){ 
-			g_t = sum(eta_deriv(pseudo_data_p,tau));
-			x_t_p = eta(pseudo_data_p,tau);
-			z_t_p = y_p - A_p*x_t_p + z_t_p * g_t / M;
-			pseudo_data_p = A_p.t() * z_t_p + x_t_p;
-
-			deriv_local = eta_deriv(pseudo_data_p,tau);
-
-			tau = tau * sum(deriv_local) / M;			
-			//uvec change = find (deriv_local != deriv_shared[p-1]);
-			//deriv_shared[p-1](change) = deriv_local(change);
-			//deriv_shared[p-1] = deriv_local;
-
-			if (norm (y_p - A_p*x_t_p) < tol || i >= max_iter){
-				done = true;
-			}
-		}
-
-		#pragma omp barrier
-		//AT fusion center:
-		if (p == 0)
-		{	
-			vec deriv_total(N,fill::zeros);
-			for (unsigned int j = 0; j < P; j++){
-				deriv_total = deriv_total + deriv_shared[j];
-			}
-			deriv_total = deriv_total/P;
-			//tau = tau * sum(deriv_total) / M;
-			
-			z_t_p = y_p - A_p*x_t_p + z_t_p * sum (eta_deriv( pseudo_data_p,tau) ) / M;
-			pseudo_data_p = A_p.t() * z_t_p + x_t_p;
-			x_t_p = eta(pseudo_data_p,tau);
-
-		}
-		#pragma omp barrier
-
-	}
-	// parallel section of the code ends here
-
-	}
-
-
-	num_iters = i;
-	return x_total;
-}
-*/
