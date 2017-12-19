@@ -1,4 +1,5 @@
 #include <stdlib.h>     // srand, rand
+#include <unistd.h>	// sleep
 #include <armadillo>
 #include <boost/math/special_functions/digamma.hpp>
 
@@ -183,9 +184,9 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 			}
 		}
 		
-		//slow cores do not perform iterations 
-		if (any( slow_cores == omp_get_thread_num()) && randu() > simulation_params.rate_slow_cores ){
-			continue;
+		//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
+		if (any( slow_cores == omp_get_thread_num()) ){
+			sleep(simulation_params.sleep_slow_cores);
 		}
 		
 		i++;

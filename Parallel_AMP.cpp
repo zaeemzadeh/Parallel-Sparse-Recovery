@@ -1,3 +1,4 @@
+#include <unistd.h>	// sleep
 #include <armadillo>
 #include <vector>
 #include <deque>
@@ -105,7 +106,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	while(!done){
 
 		//AT processor p:
-		i++;
 		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
 		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
 		
@@ -114,6 +114,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 		//AT fusion center:
 		#pragma omp single
 		{	
+			i++;
 			vec pseudo_data_total(N,fill::zeros);
 			for (unsigned int j = 0; j < P; j++){
 				pseudo_data_total = pseudo_data_total + pseudo_data[j];
@@ -141,68 +142,51 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
 
-	//cout << endl;
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
 	const unsigned int P = simulation_params.num_cores;
 	const unsigned int num_blocks = P;	
 	unsigned int i = 0;
 	vec x_t(N,fill::zeros);
-	bool new_data_ready = false;
 	bool done = false;
 	double g_t = M;
 	double tau = 1;
+
+
 	vector <mat> A_block (num_blocks); 
 	vector <vec> y_block (num_blocks); 
 	vector <vec> pseudo_data_block (num_blocks);
 	vector <vec> z_t_block (num_blocks);
 
-
-	unsigned int num_processed_blocks = 0;
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
-	#pragma omp for 
+	#pragma omp for schedule(dynamic,1)
 	for (unsigned int b = 0; b < num_blocks; b++){
 		A_block[b]  = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );
 		y_block[b]  = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
 		z_t_block[b]= y_block[b];
-		//cout << "Block #" << b << " " << A_block[b-1].n_rows << endl;
 	}
+
 	// initializing variables in local memory
 	// const int p = omp_get_thread_num();
 	// Async_MP_AMP itearations
 	while(!done){
 
 		//AT processor p:
-		while (!new_data_ready) { 
-			unsigned int block;
-			#pragma omp critical
-			{
-			block = num_processed_blocks;
-			num_processed_blocks++;	
-			if (num_processed_blocks >= num_blocks){
-				new_data_ready = true;					
-			}	
-			}
-			if (block < num_blocks)	{
-			i++;
-			//cout << i << ' ' << omp_get_thread_num() << ' ' << block << flush ;
-			z_t_block[block] = y_block[block] - A_block[block]*x_t + z_t_block[block] * g_t / M;	
-			pseudo_data_block[block] =  A_block[block].t() * z_t_block[block];
-			//cout << "DONE!" << endl << flush; ;	
-			}
+		#pragma omp for schedule(dynamic,1)
+		for (unsigned int b = 0; b < num_blocks; b++){
+			z_t_block[b] = y_block[b] - A_block[b]*x_t + z_t_block[b] * g_t / M;	
+			pseudo_data_block[b] =  A_block[b].t() * z_t_block[b];
 		}
 
 		//AT fusion center:
-		#pragma omp barrier
-
+		//#pragma omp barrier
 		#pragma omp single
 		{
-			//cout << "Fusion Center" << endl << flush;
+			i++;
 			vec pseudo_data_total(N,fill::zeros);			
 			for (unsigned int b = 0; b < num_blocks; b++){
-				//cout << "Block #" << b << " " << pseudo_data_block[b].n_rows << endl << flush;
 				pseudo_data_total = pseudo_data_total + pseudo_data_block[b];
 			}
 			pseudo_data_total = pseudo_data_total + x_t;
@@ -213,11 +197,7 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
 			}	
-			num_processed_blocks = 0;
-			new_data_ready = false;
 		}
-		
-
 		#pragma omp barrier
 	}
 	// parallel section of the code ends here

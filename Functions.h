@@ -12,9 +12,9 @@ class simulation_parameters{
 	unsigned int 	num_cores;
 	unsigned int 	num_slow_cores;
 	unsigned int 	num_faulty_cores;
-	double 		rate_slow_cores;
+	double 		sleep_slow_cores;
 	simulation_parameters() : num_cores(1),num_slow_cores(0),num_faulty_cores(0),
-			rate_slow_cores(1){};
+			sleep_slow_cores(0){};
 };
 
 

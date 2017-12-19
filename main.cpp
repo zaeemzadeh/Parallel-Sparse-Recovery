@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
 	simulation_params.num_faulty_cores = 0;
 	cout << "Number of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
 	simulation_params.num_slow_cores = 0;
-	simulation_params.rate_slow_cores = 0.4;
+	simulation_params.sleep_slow_cores = 0.4;
 	cout << "Number of Slow Cores: \t" << simulation_params.num_slow_cores << endl<<endl;
 
 	vector<string> alg_names;
