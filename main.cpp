@@ -20,20 +20,20 @@ int main(int argc, char* argv[]){
 	// initializing random number generator
 	simulation_parameters simulation_params;
 	simulation_params.num_cores = stoi(argv[2],nullptr,10);
-	cout << "Number of Processors Availabe: \t" << omp_get_num_procs() << endl << endl;
+	cout << "Number of Processors Available: \t" << omp_get_num_procs() << endl << endl;
 
 	const int num_mc_runs = stoi(argv[3],nullptr,10);// number of MC trials
 	cout << "Number of MC trials: \t" << num_mc_runs << endl << endl;
 	const int SEED = stoi(argv[1],nullptr,10);		
 	
 	// signal Parameters
-	const unsigned int sig_dim 	= 1000;		// signal dimension
-	const unsigned int sparsity	= 20;		// sparsity level of signal
-	const unsigned int meas_num	= 300;		// number of measurements
+	const unsigned int sig_dim 	= 3e3;			// signal dimension
+	const unsigned int sparsity	= 5*sig_dim/100;	// sparsity level of signal
+	const unsigned int meas_num	= 30*sig_dim/100;	// number of measurements
 	cout << "Signal Dimension: \t" << sig_dim << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1e7;
+	const unsigned int max_iter = 1e4;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	
@@ -42,8 +42,8 @@ int main(int argc, char* argv[]){
 	const vec prob_vec = ones(num_block)/num_block;
 	simulation_params.num_faulty_cores = 0;
 	cout << "Number of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = 0;
-	simulation_params.sleep_slow_cores = 0.4;
+	simulation_params.num_slow_cores = 3;
+	simulation_params.sleep_slow_cores = 2e3;   // microseconds to sleep
 	cout << "Number of Slow Cores: \t" << simulation_params.num_slow_cores << endl<<endl;
 
 	vector<string> alg_names;

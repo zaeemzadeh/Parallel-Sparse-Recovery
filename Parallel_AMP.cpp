@@ -80,16 +80,21 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 // http://ieeexplore.ieee.org/document/7926166/
 vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
+	uvec faulty_cores;
+	uvec slow_cores;
+	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
+
 
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
 	const unsigned int P = simulation_params.num_cores;
 	unsigned int i = 0;
+	bool done = false;
 	vec x_t(N,fill::zeros);
 	double g_t = M;
-	vector <vec> pseudo_data (P,vec(N,fill::zeros));
-	bool done = false;
 	double tau = 1;
+
+	vector <vec> pseudo_data (P,vec(N,fill::zeros));
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
@@ -108,6 +113,11 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 		//AT processor p:
 		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
 		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
+		
+		//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
+		if (any( slow_cores == omp_get_thread_num()) ){
+			usleep(simulation_params.sleep_slow_cores);
+		}
 		
 
 		#pragma omp barrier
@@ -141,70 +151,94 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
+	uvec faulty_cores;
+	uvec slow_cores;
+	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
 
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
 	const unsigned int P = simulation_params.num_cores;
-	const unsigned int num_blocks = P;	
 	unsigned int i = 0;
-	vec x_t(N,fill::zeros);
 	bool done = false;
-	double g_t = M;
-	double tau = 1;
+	vec pseudo_data_total(N,fill::zeros);
 
-
+	unsigned int num_blocks = P;	
+	num_blocks = std::min(num_blocks,M);
 	vector <mat> A_block (num_blocks); 
 	vector <vec> y_block (num_blocks); 
 	vector <vec> pseudo_data_block (num_blocks);
 	vector <vec> z_t_block (num_blocks);
+	unsigned int num_processed_blocks = 0;
+
 
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
+	vec x_t(N,fill::zeros);
+	double g_t = M;
+	double tau = 1;
+	unsigned int b;	
+
 	#pragma omp for schedule(dynamic,1)
 	for (unsigned int b = 0; b < num_blocks; b++){
-		A_block[b]  = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );
-		y_block[b]  = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
-		z_t_block[b]= y_block[b];
+		A_block[b]   = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );
+		y_block[b]   = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );
+		z_t_block[b] = y_block[b];
 	}
 
 	// initializing variables in local memory
-	// const int p = omp_get_thread_num();
 	// Async_MP_AMP itearations
 	while(!done){
-
 		//AT processor p:
-		#pragma omp for schedule(dynamic,1)
-		for (unsigned int b = 0; b < num_blocks; b++){
-			z_t_block[b] = y_block[b] - A_block[b]*x_t + z_t_block[b] * g_t / M;	
-			pseudo_data_block[b] =  A_block[b].t() * z_t_block[b];
+		
+		while (num_processed_blocks < num_blocks){		
+			#pragma omp critical
+			{
+			b = num_processed_blocks;
+			num_processed_blocks++;
+			}
+			//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
+			if (any( slow_cores == omp_get_thread_num()) ){
+				//cout << omp_get_thread_num() << " sleeping!" << endl << flush;
+				usleep(simulation_params.sleep_slow_cores);
+				//cout << omp_get_thread_num() << " back!" << endl << flush;
+			}
+			if (b < num_blocks){
+				z_t_block[b] = y_block[b] - A_block[b]*x_t + z_t_block[b] * g_t / M;	
+				pseudo_data_block[b] =  A_block[b].t() * z_t_block[b];
+			}
+			//cout << omp_get_thread_num() << 'J' << endl << flush;
 		}
-
+		//#pragma omp single
+		//{cout << " waiting for slow cores!" << endl << flush;}
+		#pragma omp barrier
 		//AT fusion center:
-		//#pragma omp barrier
 		#pragma omp single
 		{
-			i++;
-			vec pseudo_data_total(N,fill::zeros);			
+			
+			//cout << omp_get_thread_num() << 'F' << endl << flush;
+			i++;	
+			pseudo_data_total.zeros();		
 			for (unsigned int b = 0; b < num_blocks; b++){
 				pseudo_data_total = pseudo_data_total + pseudo_data_block[b];
 			}
 			pseudo_data_total = pseudo_data_total + x_t;
-			tau = tau * sum(eta_deriv(pseudo_data_total,tau)) / M;
-			g_t = sum(eta_deriv(pseudo_data_total,tau));
-			x_t = eta(pseudo_data_total,tau);
 		
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
 			}	
+			num_processed_blocks = 0;
 		}
-		#pragma omp barrier
+
+		tau = tau * sum(eta_deriv(pseudo_data_total,tau)) / M;
+		g_t = sum(eta_deriv(pseudo_data_total,tau));
+		x_t = eta(pseudo_data_total,tau);
 	}
 	// parallel section of the code ends here
 
 	}
 
 	num_iters = i;
-	return x_t;
+	return pseudo_data_total;  //TODO: return x_t
 }
 

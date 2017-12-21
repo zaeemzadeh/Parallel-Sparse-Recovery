@@ -12,7 +12,7 @@ class simulation_parameters{
 	unsigned int 	num_cores;
 	unsigned int 	num_slow_cores;
 	unsigned int 	num_faulty_cores;
-	double 		sleep_slow_cores;
+	double 		sleep_slow_cores;// microseconds to sleep
 	simulation_parameters() : num_cores(1),num_slow_cores(0),num_faulty_cores(0),
 			sleep_slow_cores(0){};
 };

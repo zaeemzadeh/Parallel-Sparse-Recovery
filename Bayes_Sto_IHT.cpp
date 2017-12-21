@@ -186,7 +186,7 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 		
 		//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
 		if (any( slow_cores == omp_get_thread_num()) ){
-			sleep(simulation_params.sleep_slow_cores);
+			usleep(simulation_params.sleep_slow_cores);
 		}
 		
 		i++;

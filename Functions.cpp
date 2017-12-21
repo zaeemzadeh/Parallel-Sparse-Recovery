@@ -17,8 +17,10 @@ performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const un
 	metrics.iter_avg = 0;
 	metrics.success_avg = 0;
 	for (unsigned int mc = 0; mc < MC_runs.size(); mc++){
-		metrics.time_avg += MC_runs[mc].time;
-		metrics.iter_avg += MC_runs[mc].iterations;		
+		if (MC_runs[mc].iterations < max_iter){
+			metrics.time_avg += MC_runs[mc].time;
+			metrics.iter_avg += MC_runs[mc].iterations;		
+		}
 		metrics.success_avg += double(MC_runs[mc].iterations < max_iter);
 	}
 	metrics.time_avg    = metrics.time_avg/MC_runs.size();
@@ -30,8 +32,10 @@ performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const un
 	metrics.iter_std = 0;
 	metrics.success_std = 0;
 	for (unsigned int mc = 0; mc < MC_runs.size(); mc++){
-		metrics.time_std += pow(MC_runs[mc].time,2);
-		metrics.iter_std += pow(MC_runs[mc].iterations,2) ;		
+		if (MC_runs[mc].iterations < max_iter){
+			metrics.time_std += pow(MC_runs[mc].time,2);
+			metrics.iter_std += pow(MC_runs[mc].iterations,2) ;
+		}		
 		metrics.success_std += pow(double(MC_runs[mc].iterations < max_iter),2);
 	}
 	metrics.time_std    = metrics.time_std/MC_runs.size();
@@ -150,8 +154,8 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		Sto_IHT_MC[mc].iterations = num_iters;
 		//cout << "Sto_IHT Error Norm: " << norm(x - x_hat)/norm(x) << " in " << time << " s."<< endl<< endl;
 		
-
 		*/
+
 		//cout << "True Support: " << endl << find(support!=0).t() << endl << flush;
 	}
 	MC_metrics.push_back(calculate_metrics(Sto_IHT_MC,max_iter));
