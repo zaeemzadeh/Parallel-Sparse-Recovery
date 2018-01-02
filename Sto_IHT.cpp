@@ -208,8 +208,17 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 		if (any( faulty_cores == omp_get_thread_num())  ){
 			est_supp_local = Faulty_Sto_IHT_async_iteration(x_hat_local, sparsity);
 		}else{
+			try{
 			est_supp_local = Sto_IHT_async_iteration(x_hat_local, tally, A, y, 	
 				sparsity, prob_vec, gamma);
+			}
+			catch(std::logic_error)
+			{
+				// algorithm diverged
+				//cout << "EXCEPTION" << endl << flush;
+				i = max_iter;
+				done = true;
+			}
 		}
 		// Update Tally
 		if (voting_type == "iteration number"){

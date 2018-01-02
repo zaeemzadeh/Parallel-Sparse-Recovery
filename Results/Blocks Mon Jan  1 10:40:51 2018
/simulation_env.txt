@@ -1,0 +1,21 @@
+# of Processors Available: 	12
+
+# of MC trials: 	100
+
+Signal Dimension: 	31622
+
+Sparsity: 		632
+
+# of measurements: 	9486
+
+MAx. # of Iters: 	100000
+
+# of blocks: 	120
+
+# of Faulty Cores: 	0
+
+# of Slow Cores: 	6 (each sleeping for 10 ms )
+
+Parameter to Sweep: Blocks:
+   1.2000e+01   3.9000e+01   6.6000e+01   9.3000e+01   1.2000e+02
+

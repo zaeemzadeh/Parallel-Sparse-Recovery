@@ -150,19 +150,19 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 
 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
-	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
+	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params,
+	unsigned int num_blocks){
 	uvec faulty_cores;
 	uvec slow_cores;
 	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
 
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
-	const unsigned int P = simulation_params.num_cores;
+	//const unsigned int P = simulation_params.num_cores;
 	unsigned int i = 0;
 	bool done = false;
 	vec pseudo_data_total(N,fill::zeros);
 
-	unsigned int num_blocks = P;	
 	num_blocks = std::min(num_blocks,M);
 	vector <mat> A_block (num_blocks); 
 	vector <vec> y_block (num_blocks); 

@@ -1,21 +1,33 @@
-Number of Processors Availabe: 	12
 
-Number of MC trials: 	500
+# of Processors Available: 	12
 
-Signal Dimension: 	1000
+# of MC trials: 	100
 
-Number of Faulty Cores: 	7
+Signal Dimension: 	10000
 
-Number of Slow Cores: 	3
+Sparsity: 		200
 
-Parameter to Sweep: Cores:
-12	
+# of measurements: 	3000
+
+# of Faulty Cores: 	0
+
+# of Slow Cores: 	3 (each sleeping for 5 ms )
+
+Parameter to Sweep: Sparsity:
+100	200	300	400	500	
 Sto_IHT Metrics: 
-337(1,326)	
+-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	
 Parallel Sto_IHT Metrics: 
-284(0.996,3.4e+03)	
+-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	
 Tally Sto_IHT Metrics: 
-144(0.992,1.15e+03)	
-Mojority:  
-117(1,1.04e+03)	
-
+1209(1,3.75,323)	2764(1,3.68,751)	5489(1,3.67,1.49e+03)	15082(1,3.68,4.1e+03)	107727(0.99,3.66,2.91e+04)	
+Bayes Sto_IHT Metrics: 
+-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	
+Majority Voting Sto_IHT Metrics: 
+-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	-1000(-1,-1e+03,-1)	
+AMP Metrics: 
+9462(1,79.1,120)	10396(1,78.7,132)	10894(1,78.9,138)	11037(1,78.8,140)	12194(1,78.7,155)	
+R_MP_AMP Metrics: 
+5690(1,47.2,120)	6121(1,47.1,130)	6374(1,47.2,135)	6506(1,47.2,138)	7245(1,47.2,154)	
+Async_MP_AMP Metrics: 
+5240(1,43.1,122)	5630(1,43,131)	5859(1,43,136)	5972(1,43,139)	6622(1,42.9,154)	
