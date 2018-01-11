@@ -29,15 +29,15 @@ int main(int argc, char* argv[]){
 	const int SEED = stoi(argv[1],nullptr,10);		
 	
 	// signal Parameters
-	unsigned int sig_dim 	= 1e4;			// signal dimension
+	unsigned int sig_dim 	= 1e3;			// signal dimension
 	cout << "Signal Dimension: \t" << sig_dim << endl<<endl;
-	unsigned int sparsity	= 5*sig_dim/100;	// sparsity level of signal
+	unsigned int sparsity	= 1*sig_dim/100;	// sparsity level of signal
 	cout << "Sparsity: \t\t" << sparsity << endl<<endl;
 	unsigned int meas_num	= 30*sig_dim/100;	// number of measurements
 	cout << "# of measurements: \t" << meas_num << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1e5;
+	const unsigned int max_iter = 1e3;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
 
 	simulation_params.num_faulty_cores = 0;
 	cout << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = 3;
+	simulation_params.num_slow_cores = 0;
 	simulation_params.sleep_slow_cores = 5e3;   // microseconds to sleep
 	cout << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
 	cout << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
@@ -64,13 +64,16 @@ int main(int argc, char* argv[]){
 
 	// define experiment
 	vector <experiment> experiments;
+	//experiments.push_back(experiment("Signal Dimension",logspace(3,3,1)));
+	experiments.push_back(experiment("Sparsity",linspace(1,1,1)));
+	/*experiments.push_back(experiment("Sparsity",linspace(5,5,1)));	
 	experiments.push_back(experiment("Sleep Time",linspace(0,10e3,5)));
 	experiments.push_back(experiment("Slow Cores",linspace(0,6,4)));
 	experiments.push_back(experiment("Sparsity",linspace(1,8,4)));
 	experiments.push_back(experiment("Signal Dimension",logspace(2,4.5,5)));
 	experiments.push_back(experiment("Blocks",simulation_params.num_cores*linspace(1,10,5)));
 	experiments.push_back(experiment("Cores",linspace(2,12,3)));
-
+	*/
 	run_experiments(experiments, alg_names, sig_dim, sparsity, meas_num, max_iter, gamma, tol ,
 		block_size,  num_block,  prob_vec, simulation_params, num_mc_runs, SEED);
 

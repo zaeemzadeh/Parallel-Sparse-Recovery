@@ -52,7 +52,7 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 	unsigned int i = 0;
 	vec x_t(N,fill::zeros);
 	vec z_t = y;
-	double tau = 1;
+	double tau = .1;
 	bool done = false;
 	vec pseudo_data (N,fill::zeros);
 
@@ -70,6 +70,10 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 		}
 	}
 
+	cout << "AMP#iterations: " << i << endl;
+	if (i >= max_iter){
+	cout << " AMP did not converge!" << endl;
+	}
 
 	num_iters = i;
 	return x_t;
@@ -92,7 +96,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	bool done = false;
 	vec x_t(N,fill::zeros);
 	double g_t = M;
-	double tau = 1;
+	double tau = .1;
 
 	vector <vec> pseudo_data (P,vec(N,fill::zeros));
 	// parallel section of the code starts here
@@ -144,11 +148,185 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	}
 
 
+	cout << "R_MP#iterations: " << i << endl;
 	num_iters = i;
 	return x_t;
 }
 
 
+typedef vector <vector<vec>> msg_board;
+
+vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
+	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params,
+	unsigned int num_blocks){
+
+	const unsigned int N = A.n_cols;
+	const unsigned int M = y.n_elem;
+	const unsigned int P = 4;
+	unsigned int i = 0;
+	bool done = false;
+
+	
+	vector <vec> pseudo_data (P,vec(N,fill::zeros));
+	// parallel section of the code starts here
+	#pragma omp parallel num_threads(P)
+	{
+	vec x_t(N,fill::zeros);
+	double tau = .1;
+
+	// initializing variables in local memory
+	const int p = omp_get_thread_num();
+	mat A_p; 
+	vec y_p;
+	vec norm_A_p; 
+	unsigned int M_p;
+
+	A_p = A.rows(M*p/P , M*(p+1)/P -1 );
+	y_p = y.subvec( M*p/P  , M*(p+1)/P -1 );
+
+	norm_A_p = sqrt( sum(pow(A_p,2))).t();M_p = M; bool avg = false;
+	//norm_A_p = ones(N,1);M_p = M; bool avg = false;
+	A_p   = A_p*diagmat(1/norm_A_p);
+
+
+	cout << M_p << endl;
+	vec pseudo_data_bar(N,fill::zeros);
+	vec pseudo_data_total(N,fill::zeros);
+	mat Proj_p = eye(N,N) - pinv(A_p)*A_p;
+	
+	vec z_t_p = y_p;
+	// R_MP_AMP itearations
+	while(!done){
+		#pragma omp single nowait
+		{i++;}
+
+		z_t_p = y_p - A_p*x_t + z_t_p * sum(eta_deriv(pseudo_data[p],tau)) / M_p;
+
+		pseudo_data[p] = A_p.t() * z_t_p;//
+
+
+		pseudo_data[p] = diagmat(norm_A_p)*pseudo_data[p];		
+		#pragma omp barrier	
+		pseudo_data_total = pseudo_data[p];
+		for (unsigned int j = 0; j < P; j++){
+			if (j == p){
+				continue;
+			}
+			pseudo_data_total += pseudo_data[j];
+		}
+		//pseudo_data_avg = diagmat(1/norm_A_p)*pseudo_data_avg;
+		#pragma omp barrier
+		//pseudo_data[p] = diagmat(1/norm_A_p)*pseudo_data[p];
+		double gamma = 0;
+		pseudo_data[p]  =  pseudo_data_total; 
+		pseudo_data[p] +=  diagmat(1/norm_A_p)*x_t;//
+
+		tau = tau * sum(eta_deriv(pseudo_data[p],tau)) / M_p;
+		x_t = diagmat(norm_A_p)*eta(pseudo_data[p],tau);
+
+		if (norm (y_p - A_p*x_t) < tol || i >= max_iter){
+			done = true;
+		}
+		#pragma omp barrier
+	}
+	// parallel section of the code ends here
+
+	}
+	cout << "Async#iterations: " << i << endl;
+	num_iters = i;
+	return zeros(N,1);   //TODO: return x_t
+}
+
+
+/*
+vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
+	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params,
+	unsigned int num_blocks){
+
+	const unsigned int N = A.n_cols;
+	const unsigned int M = y.n_elem;
+	//const unsigned int P = simulation_params.num_cores;
+	unsigned int i = 0;
+
+	num_blocks = 2;//std::min(num_blocks,M);
+	vector <mat> A_block (num_blocks); 
+	vector <vec> y_block (num_blocks); 
+	vector <vec> pseudo_data_block (num_blocks);
+	vector <vec> z_t_block (num_blocks);
+	//vector <vec> norms_block (num_blocks);
+	vector <vec> x_t (num_blocks);
+	bool done (false);
+
+	// parallel section of the code starts here
+	#pragma omp parallel num_threads(num_blocks)
+	{
+	double tau = 1;
+
+	#pragma omp for 
+	for (unsigned int b = 0; b < num_blocks; b++){
+		A_block[b]   = A.rows(M*b/num_blocks , M*(b+1)/num_blocks -1 );//A;//
+		//norms_block[b] = sqrt( sum(pow(A_block[b],2))).t();
+		//A_block[b] = normalise(A_block[b]);
+		//A_block[b]   = A_block[b]*diagmat(1/norms_block[b]);
+		y_block[b]   = y.subvec( M*b/num_blocks  , M*(b+1)/num_blocks -1 );//y; //
+		z_t_block[b] = y_block[b];
+		x_t [b] = zeros(N,1);
+		pseudo_data_block[b] = zeros(N,1);
+		//cout << A_block[b].n_rows << ' ' << endl;
+	}
+
+	// Async_MP_AMP itearations
+	unsigned int b = omp_get_thread_num();
+	
+	while(!done){
+		//AT processor p:
+		#pragma omp single
+		{i++;	}	
+
+		//unsigned int M_block = A_block[b].n_rows;		
+		z_t_block[b] = y_block[b] - A_block[b]*x_t[b] + z_t_block[b] * sum (eta_deriv( pseudo_data_block[b],tau) ) / M;
+		pseudo_data_block[b] = A_block[b].t() * z_t_block[b] + x_t[b]/num_blocks;
+		#pragma omp barrier
+		vec mean = zeros(N,1);
+		#pragma omp single
+		{
+		for (unsigned int j = 0; j < num_blocks; j++){
+			//if (j == b){continue;}
+			//vec data = diagmat(1/norms_block[j])*pseudo_data_block[j];
+			vec data = pseudo_data_block[j];
+			mean = mean + data; //x_t[b]
+		}
+		//mean = mean/(num_blocks);
+		}
+		#pragma omp barrier
+		pseudo_data_block[b] = mean;
+		//pseudo_data_block[b] = pseudo_data_block[b] + x_t[b];
+
+		//cout << mean.t() << endl << endl << flush;
+		tau = tau * sum(eta_deriv(pseudo_data_block[b],tau)) / M;
+		x_t[b] = eta(pseudo_data_block[b],tau) ;
+
+		//x_t[b] = diagmat(1/norms_block[b])*x_t[b] ;
+		if (norm (y_block[b] - A_block[b]*x_t[b]) < tol){	
+			//cout << b << " converged!" << endl;
+			done = true;
+		}
+
+		if (i >= max_iter){	
+			//cout << b << " did not converge!" << endl;
+			done = true;
+		}
+		#pragma omp barrier
+	}
+	
+	}
+
+	cout << "Async#iterations: " << i << endl;
+	num_iters = i;
+	return zeros(N,1);   //TODO: return x_t
+}
+*/
+/*
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params,
 	unsigned int num_blocks){
@@ -241,4 +419,5 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	num_iters = i;
 	return pseudo_data_total;  //TODO: return x_t
 }
+*/
 
