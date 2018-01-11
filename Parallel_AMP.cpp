@@ -167,15 +167,20 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	bool done = false;
 
 	
-	vector <vec> pseudo_data (P,vec(N,fill::zeros));
+	msg_board message_board;
+	for (unsigned int j = 0; j < P; j++){
+		message_board.push_back(vector <vec>(P,vec(N,fill::zeros)));
+	}
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(P)
 	{
-	vec x_t(N,fill::zeros);
-	double tau = .1;
-
 	// initializing variables in local memory
 	const int p = omp_get_thread_num();
+
+	vec x_t(N,fill::zeros);
+	vec pseudo_data (N,fill::zeros);
+	double tau = .1;
+
 	mat A_p; 
 	vec y_p;
 	vec norm_A_p; 
@@ -200,29 +205,34 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 		#pragma omp single nowait
 		{i++;}
 
-		z_t_p = y_p - A_p*x_t + z_t_p * sum(eta_deriv(pseudo_data[p],tau)) / M_p;
+		z_t_p = y_p - A_p*x_t + z_t_p * sum(eta_deriv(pseudo_data,tau)) / M_p;
 
-		pseudo_data[p] = A_p.t() * z_t_p;//
+		pseudo_data = A_p.t() * z_t_p;//
 
 
-		pseudo_data[p] = diagmat(norm_A_p)*pseudo_data[p];		
+		pseudo_data = diagmat(norm_A_p)*pseudo_data;
+
+		// putting the data on message board
+		for (unsigned int j = 0; j < P; j++){
+			message_board[j][p] = pseudo_data;
+		}	
 		#pragma omp barrier	
-		pseudo_data_total = pseudo_data[p];
+		pseudo_data_total = pseudo_data;
 		for (unsigned int j = 0; j < P; j++){
 			if (j == p){
 				continue;
 			}
-			pseudo_data_total += pseudo_data[j];
+			pseudo_data_total += message_board[p][j];
 		}
 		//pseudo_data_avg = diagmat(1/norm_A_p)*pseudo_data_avg;
 		#pragma omp barrier
 		//pseudo_data[p] = diagmat(1/norm_A_p)*pseudo_data[p];
 		double gamma = 0;
-		pseudo_data[p]  =  pseudo_data_total; 
-		pseudo_data[p] +=  diagmat(1/norm_A_p)*x_t;//
-
-		tau = tau * sum(eta_deriv(pseudo_data[p],tau)) / M_p;
-		x_t = diagmat(norm_A_p)*eta(pseudo_data[p],tau);
+		pseudo_data  =  pseudo_data_total; 
+		pseudo_data +=  diagmat(1/norm_A_p)*x_t;//
+/**/
+		tau = tau * sum(eta_deriv(pseudo_data,tau)) / M_p;
+		x_t = diagmat(norm_A_p)*eta(pseudo_data,tau);
 
 		if (norm (y_p - A_p*x_t) < tol || i >= max_iter){
 			done = true;
