@@ -168,8 +168,10 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 
 	
 	msg_board message_board;
+	vector <omp_lock_t> message_board_locks (P);
 	for (unsigned int j = 0; j < P; j++){
 		message_board.push_back(vector <vec>(P,vec(N,fill::zeros)));
+		omp_init_lock( &(message_board_locks[j]) );
 	}
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(P)
@@ -214,18 +216,27 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 
 		// putting the data on message board
 		for (unsigned int j = 0; j < P; j++){
-			message_board[j][p] = pseudo_data;
+			//omp_set_lock( &(message_board_locks[p]) );
+			#pragma omp critical
+			{message_board[j][p] = pseudo_data;}
+			//omp_unset_lock( &(message_board_locks[p]) );
 		}	
-		#pragma omp barrier	
+		//#pragma omp barrier	
 		pseudo_data_total = pseudo_data;
 		for (unsigned int j = 0; j < P; j++){
 			if (j == p){
 				continue;
 			}
-			pseudo_data_total += message_board[p][j];
+			//if ((j - p) % P == 1){
+			if (randu() <= 1){
+				continue;
+			}
+			//omp_set_lock( &(message_board_locks[j]) );
+			#pragma omp critical
+			{pseudo_data_total += message_board[p][j];}
+			//omp_unset_lock( &(message_board_locks[j]) );
 		}
 		//pseudo_data_avg = diagmat(1/norm_A_p)*pseudo_data_avg;
-		#pragma omp barrier
 		//pseudo_data[p] = diagmat(1/norm_A_p)*pseudo_data[p];
 		double gamma = 0;
 		pseudo_data  =  pseudo_data_total; 
@@ -237,10 +248,14 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 		if (norm (y_p - A_p*x_t) < tol || i >= max_iter){
 			done = true;
 		}
-		#pragma omp barrier
+		//#pragma omp barrier
 	}
 	// parallel section of the code ends here
 
+	}
+	for (unsigned int j = 0; j < P; j++){
+		message_board.push_back(vector <vec>(P,vec(N,fill::zeros)));
+		omp_destroy_lock( &(message_board_locks[j]) );
 	}
 	cout << "Async#iterations: " << i << endl;
 	num_iters = i;

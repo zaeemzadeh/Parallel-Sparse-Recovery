@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
 	cout << "# of measurements: \t" << meas_num << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1e3;
+	const unsigned int max_iter = 1e4;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	
