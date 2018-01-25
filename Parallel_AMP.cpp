@@ -154,11 +154,15 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 }
 
 
-typedef vector <vector<vec>> msg_board;
+typedef vector<vec*> msg_board;
 
 vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params,
 	unsigned int num_blocks){
+
+	uvec faulty_cores;
+	uvec slow_cores;
+	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
 
 	const unsigned int N = A.n_cols;
 	const unsigned int M = y.n_elem;
@@ -170,7 +174,7 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	msg_board message_board;
 	vector <omp_lock_t> message_board_locks (P);
 	for (unsigned int j = 0; j < P; j++){
-		message_board.push_back(vector <vec>(P,vec(N,fill::zeros)));
+		message_board.push_back(NULL);
 		omp_init_lock( &(message_board_locks[j]) );
 	}
 	// parallel section of the code starts here
@@ -181,6 +185,11 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 
 	vec x_t(N,fill::zeros);
 	vec pseudo_data (N,fill::zeros);
+	vec shared_data (N,fill::zeros);
+	vec agg_data (N,fill::zeros);
+	#pragma omp critical
+	{message_board[p] = &shared_data;}
+	
 	double tau = .1;
 
 	mat A_p; 
@@ -191,70 +200,73 @@ vec Async_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned 
 	A_p = A.rows(M*p/P , M*(p+1)/P -1 );
 	y_p = y.subvec( M*p/P  , M*(p+1)/P -1 );
 
-	norm_A_p = sqrt( sum(pow(A_p,2))).t();M_p = M; bool avg = false;
-	//norm_A_p = ones(N,1);M_p = M; bool avg = false;
+	norm_A_p = sqrt( sum(pow(A_p,2))).t();M_p = y_p.n_rows; 
+	//norm_A_p = ones(N,1);M_p = M; 
 	A_p   = A_p*diagmat(1/norm_A_p);
 
 
-	cout << M_p << endl;
-	vec pseudo_data_bar(N,fill::zeros);
-	vec pseudo_data_total(N,fill::zeros);
-	mat Proj_p = eye(N,N) - pinv(A_p)*A_p;
+	//cout << y_p.n_rows << endl;
 	
 	vec z_t_p = y_p;
 	// R_MP_AMP itearations
 	while(!done){
 		#pragma omp single nowait
 		{i++;}
+		if (norm (y - A*diagmat(1/norm_A_p)*x_t) < tol || i >= max_iter){
+			done = true;
+		}
+
+		//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
+		if (any( slow_cores == omp_get_thread_num()) ){
+			usleep(simulation_params.sleep_slow_cores);
+		}
 
 		z_t_p = y_p - A_p*x_t + z_t_p * sum(eta_deriv(pseudo_data,tau)) / M_p;
-
 		pseudo_data = A_p.t() * z_t_p;//
-
-
-		pseudo_data = diagmat(norm_A_p)*pseudo_data;
-
-		// putting the data on message board
-		for (unsigned int j = 0; j < P; j++){
-			//omp_set_lock( &(message_board_locks[p]) );
-			#pragma omp critical
-			{message_board[j][p] = pseudo_data;}
-			//omp_unset_lock( &(message_board_locks[p]) );
+	
+		#pragma omp critical
+		{
+		//cout << cnt << endl << flush;
+		//cout << p << ' ' << tau << endl << flush;
+		if (randu() < 1 ){
+			shared_data = diagmat(1/norm_A_p)*x_t;
 		}	
-		//#pragma omp barrier	
-		pseudo_data_total = pseudo_data;
+		}	
+
+		//omp_unset_lock( &(message_board_locks[p]) );
+		#pragma omp barrier
+		agg_data.zeros(); 
+		int cnt = 0;
 		for (unsigned int j = 0; j < P; j++){
-			if (j == p){
-				continue;
-			}
-			//if ((j - p) % P == 1){
-			if (randu() <= 1){
+			if ((j != p) && (randu() < 0.8)){
 				continue;
 			}
 			//omp_set_lock( &(message_board_locks[j]) );
 			#pragma omp critical
-			{pseudo_data_total += message_board[p][j];}
+			{
+			//cout << (j - p)%P << endl << flush;
+			if (message_board[j] != NULL){
+				//cout << (*(message_board[j])).t() << endl << flush;
+				//cout << shared_data.t() << endl << flush;
+				agg_data += *(message_board[j]);
+				cnt++;
+			}
+			}
 			//omp_unset_lock( &(message_board_locks[j]) );
 		}
-		//pseudo_data_avg = diagmat(1/norm_A_p)*pseudo_data_avg;
-		//pseudo_data[p] = diagmat(1/norm_A_p)*pseudo_data[p];
-		double gamma = 0;
-		pseudo_data  =  pseudo_data_total; 
-		pseudo_data +=  diagmat(1/norm_A_p)*x_t;//
-/**/
+		agg_data  /=  cnt; 
+		agg_data  =  diagmat(norm_A_p)*agg_data; /**/
+		
+		pseudo_data +=  agg_data;//
+		
 		tau = tau * sum(eta_deriv(pseudo_data,tau)) / M_p;
-		x_t = diagmat(norm_A_p)*eta(pseudo_data,tau);
-
-		if (norm (y_p - A_p*x_t) < tol || i >= max_iter){
-			done = true;
-		}
-		//#pragma omp barrier
+		x_t = eta(pseudo_data,tau);	
+		#pragma omp barrier
 	}
 	// parallel section of the code ends here
 
 	}
 	for (unsigned int j = 0; j < P; j++){
-		message_board.push_back(vector <vec>(P,vec(N,fill::zeros)));
 		omp_destroy_lock( &(message_board_locks[j]) );
 	}
 	cout << "Async#iterations: " << i << endl;
