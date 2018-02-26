@@ -70,11 +70,6 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 		}
 	}
 
-	cout << "AMP#iterations: " << i << endl;
-	if (i >= max_iter){
-	cout << " AMP did not converge!" << endl;
-	}
-
 	num_iters = i;
 	return x_t;
 }
@@ -147,8 +142,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 
 	}
 
-
-	cout << "R_MP#iterations: " << i << endl;
 	num_iters = i;
 	return x_t;
 }
