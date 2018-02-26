@@ -114,9 +114,9 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		unsigned int num_iters;
 
 		// Solve with Async_MP_AMP
-		time = omp_get_wtime();
+		/*time = omp_get_wtime();
 		const vec x_hat_Async_MP_AMP = Async_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params, num_block);
-		Async_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
+		Async_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));*/
 		//cout << "Bayesian Tally Sto_IHT Error Norm: " << norm(x - x_hat_bayesian)/norm(x) << " in " << time << " s." << endl;
 		// Solve with R_MP_AMP
 		time = omp_get_wtime();
@@ -130,7 +130,7 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 		//cout << "Bayesian Tally Sto_IHT Error Norm: " << norm(x - x_hat_bayesian)/norm(x) << " in " << time << " s." << endl;
 	
-/*
+
 		// Solve in Parallel with tally score
 		time = omp_get_wtime();
 		const vec x_hat_tally = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "iteration number");
@@ -152,7 +152,7 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
 		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 		//cout << "Bayesian Tally Sto_IHT Error Norm: " << norm(x - x_hat_bayesian)/norm(x) << " in " << time << " s." << endl;
-
+/*
 		// Solve in Parallel
 		time = omp_get_wtime();
 		const vec x_hat_parallel = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
