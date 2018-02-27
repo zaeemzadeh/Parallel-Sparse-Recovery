@@ -228,6 +228,7 @@ void save_results(const vector<string> alg_names, const vector <vector<performan
 	timeinfo = localtime ( &rawtime );
 
 	string dir = "Results/" + parameter_to_sweep + " " + string(asctime (timeinfo));
+	mkdir("Results/", 0777);
 	mkdir(&dir[0],0777);
 
 
@@ -314,7 +315,8 @@ void run_experiments(const vector<experiment> experiments, const vector <string>
 		}
 		cout << endl;
 		// Print
-		//save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, num_block, simulation_params, num_mc_runs);
+		save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, num_block, simulation_params, num_mc_runs);
+		
 	}
 
 	return;

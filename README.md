@@ -16,3 +16,5 @@ https://stackoverflow.com/questions/12578499/how-to-install-boost-on-ubuntu
 	argv[3]  : maximum number of MC trials
 
 	e.g. ./final -1 10 2
+
+Results will be saved in "/Results" subdriectory.
