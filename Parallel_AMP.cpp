@@ -57,9 +57,7 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 	vec pseudo_data (N,fill::zeros);
 
 	while(!done){
-		i++;
-	//	cout << eta_deriv( A.t()*z + x_t_1)  << endl;
-		
+		i++;		
 		z_t = y - A*x_t + z_t * sum (eta_deriv( pseudo_data,tau) ) / M;
 		pseudo_data = A.t() * z_t + x_t;
 		tau = tau * sum(eta_deriv(pseudo_data,tau)) / M;
@@ -99,8 +97,8 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	{
 	// initializing variables in local memory
 	const int p = omp_get_thread_num();
-	 mat A_p; 
-	 vec y_p; 
+	mat A_p; 
+	vec y_p; 
 	
 	A_p = A.rows(M*p/P , M*(p+1)/P -1 );
 	y_p = y.subvec( M*p/P  , M*(p+1)/P -1 );
@@ -108,7 +106,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	vec z_t_p = y_p;
 	// R_MP_AMP itearations
 	while(!done){
-
 		//AT processor p:
 		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
 		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
@@ -145,6 +142,9 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	num_iters = i;
 	return x_t;
 }
+
+
+
 
 
 typedef vector<vec*> msg_board;

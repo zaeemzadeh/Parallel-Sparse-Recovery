@@ -4,12 +4,14 @@
 
 using namespace arma;
 using namespace std;
+
+
+
 /* Description: Parallel Stochastic Iterative Hard Thresholding (StoIHT) algorithm 
  to approximate the vector x from measurements u = A*x.
 publication:  Linear Convergence of Stochastic Iterative Greedy Algorithms with Sparse Constraints
 https://arxiv.org/abs/1407.0088
 */
-
 vec parallel_Sto_IHT(const mat A, const vec y, const int sparsity, const vec prob_vec,
 		const unsigned int max_iter, const double gamma, const double tol, 
 		unsigned int &num_iters, const simulation_parameters simulation_params){
@@ -141,19 +143,27 @@ void update_tally(vec &tally,const uvec est_supp_local,const uvec prev_est_supp,
 
 
 void majority_voting(vec &tally,const uvec est_supp_local,const uvec prev_est_supp,const unsigned int iter_local){
+	/* update the tally score by majority voting
+	all the cores have equal votes
+	*/
 	tally(est_supp_local) += 1;
 	if (iter_local >= 2){
 		tally(prev_est_supp) -= 1;
 	}
 	return;
 }
+
+
+
+
 /* Description: Parallel Stochastic Iterative Hard Thresholding (StoIHT) algorithm with tally score to approximate the vector x from measurements u = A*x.
 Publication: An Asynchronous Parallel Approach to Sparse Recovery
 https://arxiv.org/abs/1701.03458*/
 
 vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob_vec,
 		const unsigned int max_iter, const double gamma,const double tol, 
-		unsigned int &num_iters, const simulation_parameters simulation_params, 	 			string voting_type){
+		unsigned int &num_iters, const simulation_parameters simulation_params, 
+		string voting_type){
 	uvec faulty_cores;
 	uvec slow_cores;
 	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
@@ -214,8 +224,7 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 			}
 			catch(std::logic_error)
 			{
-				// algorithm diverged
-				//cout << "EXCEPTION" << endl << flush;
+				// algorithm did not converge
 				i = max_iter;
 				done = true;
 			}
@@ -232,10 +241,7 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 	}
 	}
 	// parallel section of the code ends here
-	
-	//cout << "#iterations = " << i << endl;
 	num_iters = i;
-	//omp_destroy_lock(&lock);
 	return x_hat_total;
 }
 

@@ -31,13 +31,13 @@ int main(int argc, char* argv[]){
 	// signal Parameters
 	unsigned int sig_dim 	= 1e3;			// signal dimension
 	cout << "Signal Dimension: \t" << sig_dim << endl<<endl;
-	unsigned int sparsity	= 1*sig_dim/100;	// sparsity level of signal
+	unsigned int sparsity	= 2*sig_dim/100;	// sparsity level of signal
 	cout << "Sparsity: \t\t" << sparsity << endl<<endl;
-	unsigned int meas_num	= 60*sig_dim/100;	// number of measurements
+	unsigned int meas_num	= 30*sig_dim/100;	// number of measurements
 	cout << "# of measurements: \t" << meas_num << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1e3;
+	const unsigned int max_iter = 1.5e3;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	
