@@ -93,20 +93,18 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 
 	vector <vec> pseudo_data (P,vec(N,fill::zeros));
 	// parallel section of the code starts here
-	#pragma omp parallel num_threads(simulation_params.num_cores)
+	#pragma omp parallel num_threads(simulation_params.num_cores) 
 	{
 	// initializing variables in local memory
 	const int p = omp_get_thread_num();
-	mat A_p; 
-	vec y_p; 
-	
-	A_p = A.rows(M*p/P , M*(p+1)/P -1 );
-	y_p = y.subvec( M*p/P  , M*(p+1)/P -1 );
+	mat A_p = A.rows(M*p/P , M*(p+1)/P -1 ); 
+	vec y_p = y.subvec( M*p/P  , M*(p+1)/P -1 ); 
 	
 	vec z_t_p = y_p;
 	// R_MP_AMP itearations
 	while(!done){
 		//AT processor p:
+		//cout << "is it async?" << endl;
 		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
 		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
 		
@@ -120,6 +118,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 		//AT fusion center:
 		#pragma omp single
 		{	
+			//cout << "--" << p << endl;
 			i++;
 			vec pseudo_data_total(N,fill::zeros);
 			for (unsigned int j = 0; j < P; j++){
@@ -132,6 +131,7 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
 			}
+			//cout << "--" << p << endl;
 		}
 		#pragma omp barrier
 	}

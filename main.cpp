@@ -18,7 +18,15 @@ int main(int argc, char* argv[]){
 	// argv[1]  : seed for random generator  (set to -1 for random seed)
 	// argv[2]  : number of threads requested
 	// argv[3]  : maximum number of MC trials
+
+	// disable the dynamic adjustment of the number of threads within a team. 
+	omp_set_dynamic(false);		
+	// disable nested parallel regions, i.e., whether team members are allowed to create new teams.
+	omp_set_nested(false);
+	omp_set_num_threads(1);
+
 	cout << endl;
+	cout << omp_get_num_threads() << endl;
 	// initializing random number generator
 	simulation_parameters simulation_params;
 	simulation_params.num_cores = stoi(argv[2],nullptr,10);
@@ -37,7 +45,7 @@ int main(int argc, char* argv[]){
 	cout << "# of measurements: \t" << meas_num << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1.5e3;
+	const unsigned int max_iter = 1e3;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	

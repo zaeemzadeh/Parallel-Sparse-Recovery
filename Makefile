@@ -2,7 +2,6 @@ CC = g++
 CFLAGS = -fopenmp -std=c++11 -Wall
 LDFLAGS = -larmadillo
 
-
 final: main.o Sto_IHT.o Bayes_Sto_IHT.o Functions.o Parallel_AMP.o
 	$(CC) -o final *.o $(LDFLAGS) $(CFLAGS)
 main.o: main.cpp 
