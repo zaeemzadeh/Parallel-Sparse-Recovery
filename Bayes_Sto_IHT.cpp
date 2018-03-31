@@ -58,8 +58,6 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	uvec old_one_indices = find(prev_support_data ==1);	
 	vec  old_expected_u  = expected_u;
 
-	//const double conv_err = 1e-7;
-	//const unsigned int max_iter = 1;
 	uvec zero_indices = find(support_data ==0);	
 	uvec one_indices = find(support_data ==1);	
 	const uvec obs_indices = find(support_data !=-1);
@@ -91,9 +89,6 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	mat Q = exp(Ln_Q);		// posterior mass function (not normalized)
 	expected_u(obs_indices) = Q(obs_indices,U)/sum(Q.rows(obs_indices),1);
 	//expected_u(obs_indices) = ( expected_u(obs_indices)  - min(expected_u(obs_indices))) / max(expected_u(obs_indices)  - min(expected_u(obs_indices)));
-	//cout << omp_get_thread_num() << " u " << expected_u(obs_indices).t() << endl;
-	//cout << omp_get_thread_num() << " q1 " << min(Q.col(1)) << " - " <<  max(Q.col(1))  << endl;
-	//cout << omp_get_thread_num() << " q0 " << min(Q.col(0)) << " - " <<  max(Q.col(0))  << endl;
 
 	// #### Update R  #####
 	// using coefficient reliability
@@ -103,7 +98,6 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	// liklihood term (coefficient reliability)
 	reliability_pos += sum(expected_u(obs_indices));	
 	reliability_neg += sum(1 - expected_u(obs_indices));
-	//cout << omp_get_thread_num() << " r " << reliability_pos << endl;
 	// liklihood term (number of iterations)
 	//reliability_pos += local_iters;
 	//reliability_neg += global_iters - local_iters;
@@ -148,7 +142,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
 	//#pragma omp single // a single core executes the following line
-	//{cout << "Number of threads: " << omp_get_num_threads() << endl;}
 
 	// initializaiotn of variables that are LOCAL to each core
 	uvec prev_est_supp;			// estimated support in previous iteration
@@ -203,28 +196,13 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 		}
 
 		// generate support data
-		support_data.fill(-1);support_data.elem(est_supp_local).ones();
-		//support_data = generate_support(est_supp_local,prev_est_supp,sig_dim);
-	
+		support_data.fill(-1);support_data.elem(est_supp_local).ones();	
 		update_tally_bayesian(pos_count, neg_count, reliability_pos, reliability_neg, expected_u, support_data, prev_support_data, P_rand, i , iter_local );		
-
-	//	tally(est_supp_local) += 1;
-		//if (iter_local > 1)
-		//	tally(prev_est_supp) -= 1;
-		//tally(updated_indices) = exp(expected_ln_beta_dist(pos_count(updated_indices),neg_count(updated_indices)));
 
 		prev_support_data = support_data;
 
 		prev_est_supp = est_supp_local;
 	}
-	//#pragma omp critical
-	//{
-	//cout << omp_get_thread_num() << " r " << reliability_pos << '\t' << reliability_neg << endl;
-	//cout << "tally: " << sort_index(abs(tally),"descend").t() << endl;
-	//cout << omp_get_thread_num() << " p " << pos_count.t() << endl;
-	//cout << omp_get_thread_num() << " n " << neg_count.t() << endl;
-	//cout << omp_get_thread_num() << " : " << tally.t() << endl << flush;
-	//}
 	}
 	// parallel section of the code ends here
 

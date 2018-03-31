@@ -26,7 +26,6 @@ int main(int argc, char* argv[]){
 	omp_set_num_threads(1);
 
 	cout << endl;
-	cout << omp_get_num_threads() << endl;
 	// initializing random number generator
 	simulation_parameters simulation_params;
 	simulation_params.num_cores = stoi(argv[2],nullptr,10);
@@ -37,7 +36,7 @@ int main(int argc, char* argv[]){
 	const int SEED = stoi(argv[1],nullptr,10);		
 	
 	// signal Parameters
-	unsigned int sig_dim 	= 1e3;			// signal dimension
+	unsigned int sig_dim 	= 1e4;			// signal dimension
 	cout << "Signal Dimension: \t" << sig_dim << endl<<endl;
 	unsigned int sparsity	= 2*sig_dim/100;	// sparsity level of signal
 	cout << "Sparsity: \t\t" << sparsity << endl<<endl;
@@ -45,18 +44,19 @@ int main(int argc, char* argv[]){
 	cout << "# of measurements: \t" << meas_num << endl<<endl;
 
 	// algorithm parameters
-	const unsigned int max_iter = 1e3;
+	const unsigned int max_iter = 1.5e3;
 	const double gamma = 1e0;
 	const double tol = 1e-7;
 	const int unsigned block_size = fmin(meas_num,sparsity);	
 	const vec prob_vec = normalise(ones(meas_num / block_size),1);		// set probabilities of selecting each block
 
 	unsigned int num_block = simulation_params.num_cores;		// number of blocks
+	cout << "# of Cores Requested: \t" << simulation_params.num_cores << endl<<endl;
 
 	simulation_params.num_faulty_cores = 0;
 	cout << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = 0;
-	simulation_params.sleep_slow_cores = 5e3;   // microseconds to sleep
+	simulation_params.num_slow_cores = (2 * simulation_params.num_cores) / 10;
+	simulation_params.sleep_slow_cores = 15e3;   // microseconds to sleep
 	cout << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
 	cout << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
 
@@ -70,18 +70,15 @@ int main(int argc, char* argv[]){
 	alg_names.push_back("R_MP_AMP");
 	alg_names.push_back("Async_MP_AMP");
 
-	// define experiment
+	// define experiments
 	vector <experiment> experiments;
-	//experiments.push_back(experiment("Signal Dimension",logspace(3,3,1)));
-	experiments.push_back(experiment("Sparsity",linspace(1,1,1)));
-	/*experiments.push_back(experiment("Sparsity",linspace(5,5,1)));	
-	experiments.push_back(experiment("Sleep Time",linspace(0,10e3,5)));
-	experiments.push_back(experiment("Slow Cores",linspace(0,6,4)));
-	experiments.push_back(experiment("Sparsity",linspace(1,8,4)));
-	experiments.push_back(experiment("Signal Dimension",logspace(2,4.5,5)));
-	experiments.push_back(experiment("Blocks",simulation_params.num_cores*linspace(1,10,5)));
-	experiments.push_back(experiment("Cores",linspace(2,12,3)));
-	*/
+	experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
+	experiments.push_back(experiment("Signal Dimension",logspace(3,4.5,6)));
+	experiments.push_back(experiment("Slow Cores",linspace(0,6,7)));
+	experiments.push_back(experiment("Sleep Time",linspace(0,100e3,7)));
+	experiments.push_back(experiment("Cores",linspace(1,18,6)));
+	//experiments.push_back(experiment("Blocks",simulation_params.num_cores*linspace(1,10,5)));
+	
 	run_experiments(experiments, alg_names, sig_dim, sparsity, meas_num, max_iter, gamma, tol ,
 		block_size,  num_block,  prob_vec, simulation_params, num_mc_runs, SEED);
 

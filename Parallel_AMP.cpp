@@ -104,7 +104,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 	// R_MP_AMP itearations
 	while(!done){
 		//AT processor p:
-		//cout << "is it async?" << endl;
 		z_t_p = y_p - A_p*x_t + z_t_p * g_t / M;
 		pseudo_data[p] = A_p.t() * z_t_p + x_t/P;
 		
@@ -118,7 +117,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 		//AT fusion center:
 		#pragma omp single
 		{	
-			//cout << "--" << p << endl;
 			i++;
 			vec pseudo_data_total(N,fill::zeros);
 			for (unsigned int j = 0; j < P; j++){
@@ -131,7 +129,6 @@ vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int 
 			if (norm (y - A*x_t) < tol || i >= max_iter){
 				done = true;
 			}
-			//cout << "--" << p << endl;
 		}
 		#pragma omp barrier
 	}

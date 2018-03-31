@@ -332,6 +332,8 @@ void run_experiments(const vector<experiment> experiments, const vector <string>
 		for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
 			if (parameter_to_sweep == "Cores"){
 				simulation_params.num_cores = int(parameter_to_sweep_values[param]);
+				num_block = simulation_params.num_cores; //FIXME: not necessarily
+				simulation_params.num_slow_cores = (2 * simulation_params.num_cores) / 10; // FIXME: This should be set in main, not here
 				cout << simulation_params.num_cores << '\t' << flush;
 			}else if (parameter_to_sweep == "Sparsity"){
 				sparsity = parameter_to_sweep_values[param]*sig_dim/100.0;
@@ -359,7 +361,7 @@ void run_experiments(const vector<experiment> experiments, const vector <string>
 		cout << endl;
 		// Print/Save
 		print_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, num_block, simulation_params, num_mc_runs);
-		//save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, num_block, simulation_params, num_mc_runs);
+		save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, num_block, simulation_params, num_mc_runs);
 		
 	}
 
