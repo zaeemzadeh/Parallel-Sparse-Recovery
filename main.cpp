@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
 
 	simulation_params.num_faulty_cores = 0;
 	cout << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = (2 * simulation_params.num_cores) / 10;
+	simulation_params.num_slow_cores = (20 * simulation_params.num_cores) / 100;
 	simulation_params.sleep_slow_cores = 15e3;   // microseconds to sleep
 	cout << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
 	cout << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
@@ -72,11 +72,11 @@ int main(int argc, char* argv[]){
 
 	// define experiments
 	vector <experiment> experiments;
-	experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
-	experiments.push_back(experiment("Signal Dimension",logspace(3,4.5,6)));
-	experiments.push_back(experiment("Slow Cores",linspace(0,6,7)));
-	experiments.push_back(experiment("Sleep Time",linspace(0,100e3,7)));
-	experiments.push_back(experiment("Cores",linspace(1,18,6)));
+	//experiments.push_back(experiment("Sparsity",linspace(1,5,3)));
+	//experiments.push_back(experiment("Signal Dimension",logspace(3,3,1)));
+	//experiments.push_back(experiment("Slow Cores",linspace(0,6,7)));
+	experiments.push_back(experiment("Sleep Time",linspace(0,100e3,4)));
+	//experiments.push_back(experiment("Cores",linspace(1,18,6)));
 	//experiments.push_back(experiment("Blocks",simulation_params.num_cores*linspace(1,10,5)));
 	
 	run_experiments(experiments, alg_names, sig_dim, sparsity, meas_num, max_iter, gamma, tol ,

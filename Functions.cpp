@@ -124,11 +124,6 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		double time;
 		unsigned int num_iters;
 
-		// Solve with Async_MP_AMP
-		/*time = omp_get_wtime();
-		const vec x_hat_Async_MP_AMP = Async_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params, num_block);
-		Async_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));*/
-
 
 		// Solve in Parallel with tally score
 		time = omp_get_wtime();
@@ -146,7 +141,7 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		time = omp_get_wtime();
 		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
 		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-
+/*
 		// Solve with R_MP_AMP
 		time = omp_get_wtime();
 		const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
@@ -156,19 +151,19 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		time = omp_get_wtime();
 		const vec x_hat_AMP = AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
 		AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-/*
+
 
 		// Solve with Parallel StoIHT
 		time = omp_get_wtime();
 		const vec x_hat_parallel = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
 		Parallel_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-*/
+
 
 		// solve with non-parallel StoIHT
 		time = omp_get_wtime();
 		const vec x_hat = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params_non_parallel);
 		Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-		
+*/		
 	}
 
 
@@ -195,6 +190,9 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 // ---------------------------------------------------
 // ----------- function: faulty_n_slow_cores ---------
 // ---------------------------------------------------
+// NOTE: Thread #0 is never selected to be faulty or slow
+// Because it is already performing extra calculation to check the convergence criteria
+// This way it is easier to interpret the results
 void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_parameters simulation_params){
 	vec cores(simulation_params.num_cores-1,fill::zeros);
 

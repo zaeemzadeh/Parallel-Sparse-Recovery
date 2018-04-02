@@ -88,7 +88,6 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 
 	mat Q = exp(Ln_Q);		// posterior mass function (not normalized)
 	expected_u(obs_indices) = Q(obs_indices,U)/sum(Q.rows(obs_indices),1);
-	//expected_u(obs_indices) = ( expected_u(obs_indices)  - min(expected_u(obs_indices))) / max(expected_u(obs_indices)  - min(expected_u(obs_indices)));
 
 	// #### Update R  #####
 	// using coefficient reliability
@@ -99,8 +98,8 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	reliability_pos += sum(expected_u(obs_indices));	
 	reliability_neg += sum(1 - expected_u(obs_indices));
 	// liklihood term (number of iterations)
-	//reliability_pos += local_iters;
-	//reliability_neg += global_iters - local_iters;
+	reliability_pos += local_iters;
+	reliability_neg += global_iters - local_iters;
 
 	// #### Update Phi  #####	
 	#pragma omp critical
@@ -144,8 +143,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 	//#pragma omp single // a single core executes the following line
 
 	// initializaiotn of variables that are LOCAL to each core
-	uvec prev_est_supp;			// estimated support in previous iteration
-	prev_est_supp.reset();
 	uvec updated_indices;
 	vec x_hat_local(sig_dim,fill::zeros);  	// this is local to each core
 	unsigned int iter_local = 0;		// number of iteration for this core
@@ -172,9 +169,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 				x_hat_total = x_hat_local;
 				done = true;
 			}
-			if (omp_get_num_threads()  > 1){
-				continue;
-			}
 		}
 		
 		//slow cores sleep for  simulation_params.sleep_slow_cores microseconds
@@ -200,8 +194,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 		update_tally_bayesian(pos_count, neg_count, reliability_pos, reliability_neg, expected_u, support_data, prev_support_data, P_rand, i , iter_local );		
 
 		prev_support_data = support_data;
-
-		prev_est_supp = est_supp_local;
 	}
 	}
 	// parallel section of the code ends here

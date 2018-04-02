@@ -189,6 +189,7 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 
 	// iterations to find the solutions
 	while(!done){
+		//cout << omp_get_thread_num();
 		// master thread uses the tally vector to check the convergence criteria
 		if (omp_get_thread_num() == 0){	
 			const uvec sorted_ind = sort_index(abs(tally),"descend");	
@@ -199,9 +200,6 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 			if (norm (y - A*x_hat_local) < tol || i >= max_iter){
 				x_hat_total = x_hat_local;
 				done = true;
-			}
-			if (omp_get_num_threads()  > 1){
-				continue;
 			}
 		}
 
@@ -241,6 +239,7 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 	}
 	}
 	// parallel section of the code ends here
+	//cout << endl;
 	num_iters = i;
 	return x_hat_total;
 }
