@@ -52,7 +52,7 @@ public:
 performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const unsigned int max_iter);
 
 
-vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const unsigned int block_size, const unsigned int num_block, const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
+vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const unsigned int block_size,  const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
 
 
 void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_parameters simulation_params);
@@ -61,18 +61,18 @@ void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_
 void save_results(const vector<string> alg_names, const vector <vector<performance_metrics>> sweep_metrics,
 	const string parameter_to_sweep, const vec parameter_to_sweep_values,
 	const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, 
-	const unsigned int max_iter, const unsigned int num_block, simulation_parameters simulation_params, const int num_mc_runs);
+	const unsigned int max_iter,  simulation_parameters simulation_params, const int num_mc_runs);
 
 
 void print_results(const vector<string> alg_names, const vector <vector<performance_metrics>> sweep_metrics,
 	const string parameter_to_sweep, const vec parameter_to_sweep_values,
 	const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, 
-	const unsigned int max_iter, const unsigned int num_block, simulation_parameters simulation_params, const int num_mc_runs);
+	const unsigned int max_iter, simulation_parameters simulation_params, const int num_mc_runs);
 
 
 void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int sig_dim, 
 	unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,
-	const unsigned int block_size, const unsigned int num_block, const vec prob_vec, simulation_parameters simulation_params,
+	const unsigned int block_size, const vec prob_vec, simulation_parameters simulation_params,
 	 const int num_mc_runs, const int SEED);
 
 

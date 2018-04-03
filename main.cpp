@@ -50,13 +50,12 @@ int main(int argc, char* argv[]){
 	const int unsigned block_size = fmin(meas_num,sparsity);	
 	const vec prob_vec = normalise(ones(meas_num / block_size),1);		// set probabilities of selecting each block
 
-	unsigned int num_block = simulation_params.num_cores;		// number of blocks
 	cout << "# of Cores Requested: \t" << simulation_params.num_cores << endl<<endl;
 
 	simulation_params.num_faulty_cores = 0;
 	cout << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = (20 * simulation_params.num_cores) / 100;
-	simulation_params.sleep_slow_cores = 15e3;   // microseconds to sleep
+	simulation_params.num_slow_cores = (70 * simulation_params.num_cores) / 100;
+	simulation_params.sleep_slow_cores = 15e5;   // microseconds to sleep
 	cout << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
 	cout << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
 
@@ -72,15 +71,15 @@ int main(int argc, char* argv[]){
 
 	// define experiments
 	vector <experiment> experiments;
-	//experiments.push_back(experiment("Sparsity",linspace(1,5,3)));
-	//experiments.push_back(experiment("Signal Dimension",logspace(3,3,1)));
-	//experiments.push_back(experiment("Slow Cores",linspace(0,6,7)));
-	experiments.push_back(experiment("Sleep Time",linspace(0,100e3,4)));
-	//experiments.push_back(experiment("Cores",linspace(1,18,6)));
-	//experiments.push_back(experiment("Blocks",simulation_params.num_cores*linspace(1,10,5)));
+	experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
+	experiments.push_back(experiment("Signal Dimension",logspace(3,5,5)));
+	experiments.push_back(experiment("Slow Cores",linspace(0,7,4)));
+	//experiments.push_back(experiment("Sleep Time",linspace(0,1000e3,7)));
+	experiments.push_back(experiment("Cores",linspace(1,18,6)));
+	
 	
 	run_experiments(experiments, alg_names, sig_dim, sparsity, meas_num, max_iter, gamma, tol ,
-		block_size,  num_block,  prob_vec, simulation_params, num_mc_runs, SEED);
+		block_size, prob_vec, simulation_params, num_mc_runs, SEED);
 
 
 	return 1;
