@@ -71,9 +71,7 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 	//prior term
 	Ln_Q(obs_indices,U).fill(expected_ln_beta_dist(reliability_neg,reliability_pos)) ; 
 
-	//liklihood term 
-	//Ln_Q(zero_indices,U) += log(1 - P_rand); 	
-	//Ln_Q(one_indices,U)  += log(P_rand) ; 	
+	//liklihood term 	
 	Ln_Q(zero_indices,U) += expected_ln_beta_dist(pos_count(zero_indices),neg_count(zero_indices)); 	
 	Ln_Q(one_indices,U)  += expected_ln_beta_dist(neg_count(one_indices),pos_count(one_indices));  
 
