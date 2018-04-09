@@ -52,7 +52,7 @@ public:
 performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const unsigned int max_iter);
 
 
-vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const unsigned int block_size,  const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
+vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,   const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
 
 
 void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_parameters simulation_params);
@@ -71,8 +71,7 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 
 
 void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int sig_dim, 
-	unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,
-	const unsigned int block_size, const vec prob_vec, simulation_parameters simulation_params,
+	unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params,
 	 const int num_mc_runs, const int SEED);
 
 

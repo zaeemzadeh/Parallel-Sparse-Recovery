@@ -82,7 +82,7 @@ performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const un
 // ---------------------------------------------------
 // ----------- function: run_mc_trials ---------------
 // ---------------------------------------------------
-vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const unsigned int block_size, const vec prob_vec, simulation_parameters simulation_params, const int num_mc_runs, const int SEED){
+vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params, const int num_mc_runs, const int SEED){
 
 	vector<performance_metrics> MC_metrics;	
 
@@ -129,24 +129,24 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		time = omp_get_wtime();
 		const vec x_hat_tally = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "iteration number");
 		Tally_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-		
-
-		// Solve in Parallel with majority voting
-		time = omp_get_wtime();
-		const vec x_hat_majority = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "majority voting");
-		Majority_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 
 
 		// Solve in Parallel with tally score with Bayesian update rules
 		time = omp_get_wtime();
 		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
 		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
+		
+/*
+		// Solve in Parallel with majority voting
+		time = omp_get_wtime();
+		const vec x_hat_majority = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "majority voting");
+		Majority_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 
 		// Solve with R_MP_AMP
 		time = omp_get_wtime();
 		const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
 		R_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-/*
+
 		// Solve with AMP
 		time = omp_get_wtime();
 		const vec x_hat_AMP = AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
@@ -285,6 +285,9 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 	string delimiter = "\t\t";
 	cout << endl;
 	for (unsigned int i = 0; i < alg_names.size(); i++){
+		if (sweep_metrics[0][i].time_avg < 0){
+			continue;
+		}
 		cout << alg_names[i] << ":" << endl;
 		cout << "time_avg" << '\t' << "success_avg" << '\t' << "time/iter_avg" 
 			<< '\t' << "iter_avg" << endl;
@@ -311,9 +314,7 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 // ---------------------------------------------------
 // ----------- function: run_experiments--------------
 // ---------------------------------------------------
-void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int sig_dim, 
-	unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,
-	const unsigned int block_size, const vec prob_vec, simulation_parameters simulation_params,
+void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int def_sig_dim, unsigned int def_sparsity, unsigned int def_meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters def_simulation_params,
 	 const int num_mc_runs, const int SEED){
 	
 
@@ -325,6 +326,11 @@ void run_experiments(const vector<experiment> experiments, const vector <string>
 		vector <vector<performance_metrics>> sweep_metrics(parameter_to_sweep_values.n_elem);
 		cout << "Experiment #" << exp+1 << '/' << experiments.size();
 		cout << " Parameter to Sweep: " << parameter_to_sweep << ':' << endl;
+
+		unsigned int sparsity = def_sparsity;
+		unsigned sig_dim = def_sig_dim;
+		unsigned int meas_num = def_meas_num;
+		simulation_parameters simulation_params = def_simulation_params;
 
 		for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
 			if (parameter_to_sweep == "Cores"){
@@ -349,7 +355,7 @@ void run_experiments(const vector<experiment> experiments, const vector <string>
 				meas_num = 30*sig_dim/100;
 				cout << sig_dim << '\t' << flush;
 			}	
-			sweep_metrics[param] =  run_mc_trials( sig_dim, sparsity, meas_num, max_iter, gamma, tol , block_size, prob_vec, simulation_params,  num_mc_runs,  SEED);
+			sweep_metrics[param] =  run_mc_trials( sig_dim, sparsity, meas_num, max_iter, gamma, tol , prob_vec, simulation_params,  num_mc_runs,  SEED);
 		}
 		cout << endl;
 		// Print/Save
