@@ -71,10 +71,10 @@ int main(int argc, char* argv[]){
 
 	// define experiments
 	vector <experiment> experiments;
-	experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
+	//experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
 	//experiments.push_back(experiment("Signal Dimension",logspace(3,4.5,5)));
 	//experiments.push_back(experiment("Slow Cores",linspace(0,7,4)));
-	//experiments.push_back(experiment("Cores",linspace(1,12,6)));
+	experiments.push_back(experiment("Cores",linspace(1,12,12)));
 	//experiments.push_back(experiment("Sleep Time",linspace(0,1000e3,7)));
 	
 	
