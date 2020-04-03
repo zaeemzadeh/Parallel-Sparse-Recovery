@@ -2,7 +2,7 @@
 
 To run this program you need to install armadillo, BLAS, LAPACK, and boost packages.
 
-**Recommended Packages:** cmake, libarmadillo-dev, libarpack-dev, libarpack2-dev, libblas-dev, libboost-dev, liblapackdev, libomp-dev, libsuperlu-dev. You can install these libraries with apt-get.   
+**Recommended Packages:** cmake, libarmadillo-dev, libarpack-dev, libarpack2-dev, libblas-dev, libboost-dev, liblapack-dev, libomp-dev, libsuperlu-dev. You can install these libraries using apt-get.   
 
 
 **IMPORTANT NOTE**: Do not install/use OpenBLAS package. OpenBLAS is optimized version of BLAS which uses multi thread computation to improve performance. This makes the comparison of parallel approaches and non-parallel approaches meaningless, because OpenBLAS perfroms the non-parallel versions in a multi-thread manner. So to have a meaningful comparison do not use OpenBLAS.
