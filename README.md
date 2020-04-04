@@ -55,3 +55,10 @@ To run this program you need to install armadillo, BLAS, LAPACK, and boost packa
 	e.g. ./final -1 10 50
 
 Results will be saved in "/Results" subdriectory.
+
+You can also solve the same problem using other sparse recovery algorithms. You just need to uncomment their corresponding lines in Functions.cpp file. These are the algorithms that you can run:
+
+- Tally-based Parallel StoIHT [link](https://ieeexplore.ieee.org/abstract/document/8023462/)
+- Parallel AMP [link](https://ieeexplore.ieee.org/abstract/document/7926166)
+- AMP [link](https://www.pnas.org/content/106/45/18914.short)
+- StoIHT and its parallel version [link](https://www.sciencedirect.com/science/article/pii/S1063520309000384)
