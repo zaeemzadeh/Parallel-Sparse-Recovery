@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){
 
 	simulation_params.num_faulty_cores = 0;
 	cout << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	simulation_params.num_slow_cores = (70 * simulation_params.num_cores) / 100;
+	simulation_params.num_slow_cores = (20 * simulation_params.num_cores) / 100;
 	simulation_params.sleep_slow_cores = 15e5;   // microseconds to sleep
 	cout << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
 	cout << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
@@ -63,18 +63,16 @@ int main(int argc, char* argv[]){
 	alg_names.push_back("Sto_IHT");
 	alg_names.push_back("Parallel Sto_IHT");
 	alg_names.push_back("Tally Sto_IHT");
-	alg_names.push_back("Bayes Sto_IHT");
-	alg_names.push_back("Majority Voting Sto_IHT");
+	alg_names.push_back("Bayesian Sto_IHT");
 	alg_names.push_back("AMP");
-	alg_names.push_back("R_MP_AMP");
-	alg_names.push_back("Async_MP_AMP");
+	alg_names.push_back("Parallel AMP");
 
 	// define experiments
 	vector <experiment> experiments;
 	//experiments.push_back(experiment("Sparsity",linspace(1,5,5)));
 	//experiments.push_back(experiment("Signal Dimension",logspace(3,4.5,5)));
 	//experiments.push_back(experiment("Slow Cores",linspace(0,7,4)));
-	experiments.push_back(experiment("Cores",linspace(1,12,12)));
+	experiments.push_back(experiment("Cores",linspace(1,10,5)));
 	//experiments.push_back(experiment("Sleep Time",linspace(0,1000e3,7)));
 	
 	
