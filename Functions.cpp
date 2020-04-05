@@ -94,10 +94,8 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 	vector <trial_info> Parallel_Sto_IHT_MC ;		
 	vector <trial_info> Tally_Sto_IHT_MC 	;			
 	vector <trial_info> Bayes_Sto_IHT_MC 	;			
-	vector <trial_info> Majority_Sto_IHT_MC	;			
 	vector <trial_info> AMP_MC		;			
-	vector <trial_info> R_MP_AMP_MC		;			
-	vector <trial_info> Async_MP_AMP_MC	;	
+	vector <trial_info> R_MP_AMP_MC		;		
 	for (int mc = 0; mc < num_mc_runs; mc++){
 		if (SEED == -1){
 			arma_rng::set_seed_random();
@@ -124,28 +122,23 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		double time;
 		unsigned int num_iters;
 
-
+		// Solve in Parallel with tally score with Bayesian update rules
+		time = omp_get_wtime();
+		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
+		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
+        
+        /*
+		// Solve with R_MP_AMP
+		time = omp_get_wtime();
+		const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
+		R_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
+        
+        
 		// Solve in Parallel with tally score
 		time = omp_get_wtime();
 		const vec x_hat_tally = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "iteration number");
 		Tally_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 
-
-		// Solve in Parallel with tally score with Bayesian update rules
-		time = omp_get_wtime();
-		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
-		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-		
-/*
-		// Solve in Parallel with majority voting
-		time = omp_get_wtime();
-		const vec x_hat_majority = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "majority voting");
-		Majority_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-
-		// Solve with R_MP_AMP
-		time = omp_get_wtime();
-		const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
-		R_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
 
 		// Solve with AMP
 		time = omp_get_wtime();
@@ -163,7 +156,7 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		time = omp_get_wtime();
 		const vec x_hat = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params_non_parallel);
 		Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-*/		
+	*/
 	}
 
 
@@ -175,13 +168,9 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 
 	MC_metrics.push_back(calculate_metrics(Bayes_Sto_IHT_MC,max_iter));
 
-	MC_metrics.push_back(calculate_metrics(Majority_Sto_IHT_MC,max_iter));
-
 	MC_metrics.push_back(calculate_metrics(AMP_MC,max_iter));
 			
 	MC_metrics.push_back(calculate_metrics(R_MP_AMP_MC,max_iter));
-
-	MC_metrics.push_back(calculate_metrics(Async_MP_AMP_MC,max_iter));
 	return MC_metrics;	
 }
 
