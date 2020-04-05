@@ -52,7 +52,7 @@ To run this program you need to install armadillo, BLAS, LAPACK, and boost packa
 
 	argv[3]  : maximum number of MC trials
 
-	e.g. ./final -1 10 50
+	e.g. ./final -1 10 1
 
 Results will be saved in "/Results" subdriectory.
 
