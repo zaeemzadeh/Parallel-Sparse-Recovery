@@ -35,7 +35,9 @@ year = {2019}
 ```
 
 ## Running the Code
-To run this program you need to install armadillo, BLAS, LAPACK, and boost packages.
+You can  run/edit the code [here](https://codeocean.com/capsule/0906525/tree).
+
+To run this program on your local machine, you need to install armadillo, BLAS, LAPACK, and boost packages.
 
 **Recommended Packages:** cmake, libarmadillo-dev, libarpack-dev, libarpack2-dev, libblas-dev, libboost-dev, liblapack-dev, libomp-dev, libsuperlu-dev. You can install these libraries using apt-get.   
 
