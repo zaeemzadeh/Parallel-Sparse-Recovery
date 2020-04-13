@@ -1,5 +1,5 @@
 # Asynchronous Parallel Sparse Recovery
-implementation of the asynchronous parallel sparse recovery algorithm proposed in: 
+Implementation of the asynchronous parallel sparse recovery algorithm proposed in: 
 
 A. Zaeemzadeh, J. Haddock, D. Needell, and N. Rahnavard, "A Bayesian Approach for Asynchronous Parallel Sparse Recovery," in Asilomar Conference on Signals, Systems, and Computers., 2018.
 [link](https://ieeexplore.ieee.org/abstract/document/8645176)
