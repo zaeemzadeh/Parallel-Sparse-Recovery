@@ -46,7 +46,7 @@ To run this program on your local machine, you need to install armadillo, BLAS, 
 
 
 - To compile, just type "make" in your terminal
-- To execute, type ./final argv[1] argv[2] argv[3]
+- To execute, type ./final argv[1] argv[2]
 
 	argv[1]  : seed for random generator  (set to -1 for random seed)
 
