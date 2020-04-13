@@ -27,7 +27,6 @@ void majority_voting(vec &tally,const uvec est_supp_local,const uvec prev_est_su
 
 vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob_vec,
 		const unsigned int max_iter, const double gamma,const double tol, 
-		unsigned int &num_iters, const simulation_parameters simulation_params,
-		 string voting_type); 
+		unsigned int &num_iters, const simulation_parameters simulation_params); 
 
 #endif /* STO_IHT_H */ 

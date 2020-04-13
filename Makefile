@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -fopenmp -std=c++11 -Wall
+CFLAGS = -fopenmp -std=c++11
 LDFLAGS = -larmadillo
 
 final: main.o Sto_IHT.o Bayes_Sto_IHT.o Functions.o Parallel_AMP.o
@@ -17,3 +17,4 @@ Functions.o: Functions.cpp Functions.h
 
 clean:
 	rm *.o
+	rm final

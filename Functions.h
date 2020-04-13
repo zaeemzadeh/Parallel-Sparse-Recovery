@@ -11,10 +11,10 @@ class simulation_parameters{
 	public:
 	unsigned int 	num_cores;
 	unsigned int 	num_slow_cores;
-	unsigned int 	num_faulty_cores;
-	double 		sleep_slow_cores;// microseconds to sleep
-	simulation_parameters() : num_cores(1),num_slow_cores(0),num_faulty_cores(0),
-			sleep_slow_cores(0){};
+	double 		    sleep_slow_cores;// microseconds to sleep
+    double          slow_cores_ratio;
+	simulation_parameters() : num_cores(1),num_slow_cores(0),
+			sleep_slow_cores(0),slow_cores_ratio(0){};
 };
 
 
@@ -41,21 +41,13 @@ class performance_metrics{
 };
 
 
-class experiment{
-public:
-	string parameter_to_sweep; 
-	vec parameter_to_sweep_values;
-	experiment(): parameter_to_sweep("Cores"),parameter_to_sweep_values(linspace(12,12,1)){}
-	experiment(string _name, vec _value): parameter_to_sweep(_name),parameter_to_sweep_values(_value){}
-};
-
 performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const unsigned int max_iter);
 
 
-vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,   const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
+vector<performance_metrics> run_mc_trials(const vector <string> alg_names, const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol ,   const vec prob_vec,  simulation_parameters simulation_params, const int num_mc_runs, const int SEED);
 
 
-void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_parameters simulation_params);
+void set_slow_cores(uvec &slow_cores, const simulation_parameters simulation_params);
 
 
 void save_results(const vector<string> alg_names, const vector <vector<performance_metrics>> sweep_metrics,
@@ -70,7 +62,7 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 	const unsigned int max_iter, simulation_parameters simulation_params, const int num_mc_runs);
 
 
-void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int sig_dim, 
+void run_experiments(const vector <string> alg_names, unsigned int sig_dim, 
 	unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params,
 	 const int num_mc_runs, const int SEED);
 

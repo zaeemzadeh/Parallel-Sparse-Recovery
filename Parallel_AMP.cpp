@@ -77,9 +77,8 @@ vec AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_i
 // http://ieeexplore.ieee.org/document/7926166/
 vec R_MP_AMP(const mat &A, const vec &y, const int sparsity, const unsigned int max_iter,
 	const double tol, unsigned int &num_iters, const simulation_parameters simulation_params){
-	uvec faulty_cores;
 	uvec slow_cores;
-	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
+	set_slow_cores(slow_cores, simulation_params);
 
 
 	const unsigned int N = A.n_cols;

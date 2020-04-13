@@ -29,8 +29,6 @@ vec parallel_Sto_IHT(const mat A, const vec y, const int sparsity, const vec pro
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
-	//#pragma omp single // a single core executes the following line
-	//cout << "Number of threads: " << omp_get_num_threads() << endl;
 	
 	// initializaiotn of variables that are local to each core
 	vec x_hat_local(sig_dim,fill::zeros);
@@ -57,7 +55,6 @@ vec parallel_Sto_IHT(const mat A, const vec y, const int sparsity, const vec pro
 		selected_block = floor(randu()*num_block);
 		first_ind_block = block_size*selected_block;
 		last_ind_block = block_size*(selected_block+1)-1;
-		//cout << first_ind_block << ":" << last_ind_block << endl;
 
 		// Proxy
 		A_block = A.rows(first_ind_block,last_ind_block);
@@ -84,7 +81,6 @@ vec parallel_Sto_IHT(const mat A, const vec y, const int sparsity, const vec pro
 	}
 	}
 	// parallel section of the code ends here
-	//cout << "#iterations = " << i << endl;
 	num_iters = i;
 	return x_hat;
 }
@@ -124,11 +120,6 @@ uvec Sto_IHT_async_iteration(vec &x_hat,const vec &tally,const mat &A,const vec 
 	return 	est_supp_local;
 }
 
-uvec Faulty_Sto_IHT_async_iteration(vec &x_hat,	const int sparsity){
-	x_hat.randn();
-	uvec sorted_ind = sort_index(abs(x_hat),"descend");	
-	return sorted_ind(span(0,sparsity - 1)); 
-}
 
 void update_tally(vec &tally,const uvec est_supp_local,const uvec prev_est_supp,const unsigned int iter_local){
 	/* update the tally score according the rules in:
@@ -142,31 +133,15 @@ void update_tally(vec &tally,const uvec est_supp_local,const uvec prev_est_supp,
 }
 
 
-void majority_voting(vec &tally,const uvec est_supp_local,const uvec prev_est_supp,const unsigned int iter_local){
-	/* update the tally score by majority voting
-	all the cores have equal votes
-	*/
-	tally(est_supp_local) += 1;
-	if (iter_local >= 2){
-		tally(prev_est_supp) -= 1;
-	}
-	return;
-}
-
-
-
-
 /* Description: Parallel Stochastic Iterative Hard Thresholding (StoIHT) algorithm with tally score to approximate the vector x from measurements u = A*x.
 Publication: An Asynchronous Parallel Approach to Sparse Recovery
 https://arxiv.org/abs/1701.03458*/
 
 vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob_vec,
 		const unsigned int max_iter, const double gamma,const double tol, 
-		unsigned int &num_iters, const simulation_parameters simulation_params, 
-		string voting_type){
-	uvec faulty_cores;
+		unsigned int &num_iters, const simulation_parameters simulation_params){
 	uvec slow_cores;
-	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
+	set_slow_cores(slow_cores, simulation_params);
 
 	const unsigned int sig_dim = A.n_cols;
 
@@ -180,7 +155,6 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
 	//#pragma omp single // a single core executes the following line
-	//cout << "Number of threads: " << omp_get_num_threads() << endl;
 
 	// initializaiotn of variables that are local to each core
 	uvec prev_est_supp;			// estimated support in previous iteration
@@ -189,7 +163,6 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 
 	// iterations to find the solutions
 	while(!done){
-		//cout << omp_get_thread_num();
 		// master thread uses the tally vector to check the convergence criteria
 		if (omp_get_thread_num() == 0){	
 			const uvec sorted_ind = sort_index(abs(tally),"descend");	
@@ -213,27 +186,18 @@ vec tally_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob
 
 		// update the local estimate of the support
 		uvec est_supp_local;
-		if (any( faulty_cores == omp_get_thread_num())  ){
-			est_supp_local = Faulty_Sto_IHT_async_iteration(x_hat_local, sparsity);
-		}else{
-			try{
-			est_supp_local = Sto_IHT_async_iteration(x_hat_local, tally, A, y, 	
-				sparsity, prob_vec, gamma);
-			}
-			catch(std::logic_error)
-			{
-				// algorithm did not converge
-				i = max_iter;
-				done = true;
-			}
-		}
+        try{
+        est_supp_local = Sto_IHT_async_iteration(x_hat_local, tally, A, y, 	
+            sparsity, prob_vec, gamma);
+        }
+        catch(std::logic_error)
+        {
+            // algorithm did not converge
+            i = max_iter;
+            done = true;
+        }
 		// Update Tally
-		if (voting_type == "iteration number"){
-			update_tally(tally,est_supp_local,prev_est_supp,iter_local);
-		}
-		if (voting_type == "majority voting"){
-			majority_voting(tally,est_supp_local,prev_est_supp,iter_local);
-		}
+        update_tally(tally,est_supp_local,prev_est_supp,iter_local);
 
 		prev_est_supp = est_supp_local;		
 	}

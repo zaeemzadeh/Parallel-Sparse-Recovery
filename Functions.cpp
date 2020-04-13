@@ -5,6 +5,7 @@
 #include <sys/stat.h>	//mkdir
 #include <sys/types.h>	//mkdir
 #include <string>
+
 #include "Sto_IHT.h"
 #include "Functions.h"
 #include "Bayes_Sto_IHT.h"
@@ -82,20 +83,16 @@ performance_metrics calculate_metrics(const vector<trial_info> MC_runs, const un
 // ---------------------------------------------------
 // ----------- function: run_mc_trials ---------------
 // ---------------------------------------------------
-vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params, const int num_mc_runs, const int SEED){
+vector<performance_metrics> run_mc_trials(const vector <string> alg_names, const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params, const int num_mc_runs, const int SEED){
 
 	vector<performance_metrics> MC_metrics;	
 
 	simulation_parameters simulation_params_non_parallel = simulation_params;
 	simulation_params_non_parallel.num_cores = 1;
 	
-	// performance metrics for different methods in MC trials
-	vector <trial_info> Sto_IHT_MC  	;				
-	vector <trial_info> Parallel_Sto_IHT_MC ;		
-	vector <trial_info> Tally_Sto_IHT_MC 	;			
-	vector <trial_info> Bayes_Sto_IHT_MC 	;			
-	vector <trial_info> AMP_MC		;			
-	vector <trial_info> R_MP_AMP_MC		;		
+	// performance metrics for different methods in MC trials	
+    vector <vector<trial_info>> alg_infos(alg_names.size());	
+    
 	for (int mc = 0; mc < num_mc_runs; mc++){
 		if (SEED == -1){
 			arma_rng::set_seed_random();
@@ -111,7 +108,6 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 		random_shuffle(support.begin(),support.end());
 
 		const vec x = support;				// Bernoulli signal
-		//vec x = randn(sig_dim,1) % support * std;	// Gaussian
 
 		// Generate Measurement matrix
 		const mat A =normalise( randn(meas_num,sig_dim) );
@@ -121,77 +117,68 @@ vector<performance_metrics> run_mc_trials(const unsigned int sig_dim, const unsi
 	
 		double time;
 		unsigned int num_iters;
-
-		// Solve in Parallel with tally score with Bayesian update rules
-		time = omp_get_wtime();
-		const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
-		Bayes_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
         
-        /*
-		// Solve with R_MP_AMP
-		time = omp_get_wtime();
-		const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
-		R_MP_AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-        
-        
-		// Solve in Parallel with tally score
-		time = omp_get_wtime();
-		const vec x_hat_tally = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params, "iteration number");
-		Tally_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-
-
-		// Solve with AMP
-		time = omp_get_wtime();
-		const vec x_hat_AMP = AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
-		AMP_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-
-
-		// Solve with Parallel StoIHT
-		time = omp_get_wtime();
-		const vec x_hat_parallel = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
-		Parallel_Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-
-
-		// solve with non-parallel StoIHT
-		time = omp_get_wtime();
-		const vec x_hat = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params_non_parallel);
-		Sto_IHT_MC.push_back(trial_info(omp_get_wtime() - time,num_iters ));
-	*/
+        for (unsigned int alg = 0; alg < alg_names.size(); alg++) {
+            if(alg_names[alg].compare("Bayesian Sto_IHT") == 0){
+                // Solve in Parallel with Bayesian update rules
+                time = omp_get_wtime();
+                const vec x_hat_bayesian = bayesian_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));
+            }
+            else if(alg_names[alg].compare("Sto_IHT") == 0){
+                // solve with non-parallel StoIHT
+                time = omp_get_wtime();
+                const vec x_hat = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params_non_parallel);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));     
+            }
+            else if(alg_names[alg].compare("Parallel Sto_IHT") == 0){                    
+                // Solve with Parallel StoIHT
+                time = omp_get_wtime();
+                const vec x_hat_parallel = parallel_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));
+            }
+            else if(alg_names[alg].compare("Tally Sto_IHT") == 0){
+                // Solve in Parallel with tally score
+                time = omp_get_wtime();
+                const vec x_hat_tally = tally_Sto_IHT(A, y, sparsity, prob_vec, max_iter, gamma, tol, num_iters, simulation_params);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));     
+            }
+            else if(alg_names[alg].compare("AMP") == 0){
+                // Solve with AMP
+                time = omp_get_wtime();
+                const vec x_hat_AMP = AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));     
+            }
+            else if(alg_names[alg].compare("Parallel AMP") == 0){
+                // Solve with R_MP_AMP
+                time = omp_get_wtime();
+                const vec x_hat_R_MP_AMP = R_MP_AMP(A, y, sparsity, max_iter, tol, num_iters,simulation_params);
+                alg_infos[alg].push_back(trial_info(omp_get_wtime() - time,num_iters ));  
+            }
+            else{
+                cout << "Unknown Algorithm name: " << alg_names[alg] << endl << endl;
+                throw;
+            }
+            
+        }
 	}
 
-
-	MC_metrics.push_back(calculate_metrics(Sto_IHT_MC,max_iter));
-
-	MC_metrics.push_back(calculate_metrics(Parallel_Sto_IHT_MC,max_iter));
-
-	MC_metrics.push_back(calculate_metrics(Tally_Sto_IHT_MC,max_iter));
-
-	MC_metrics.push_back(calculate_metrics(Bayes_Sto_IHT_MC,max_iter));
-
-	MC_metrics.push_back(calculate_metrics(AMP_MC,max_iter));
-			
-	MC_metrics.push_back(calculate_metrics(R_MP_AMP_MC,max_iter));
+    for (unsigned int alg = 0; alg < alg_names.size(); alg++) {
+        MC_metrics.push_back(calculate_metrics(alg_infos[alg],max_iter));
+    }
 	return MC_metrics;	
 }
 
 
 // ---------------------------------------------------
 // ---------------------------------------------------
-// ----------- function: faulty_n_slow_cores ---------
+// ----------- function: set_slow_cores ---------
 // ---------------------------------------------------
-// NOTE: Thread #0 is never selected to be faulty or slow
+// NOTE: Thread #0 is never selected to be slow
 // Because it is already performing extra calculation to check the convergence criteria
 // This way it is easier to interpret the results
-void faulty_n_slow_cores(uvec &faulty_cores, uvec &slow_cores, const simulation_parameters simulation_params){
+void set_slow_cores(uvec &slow_cores, const simulation_parameters simulation_params){
 	vec cores(simulation_params.num_cores-1,fill::zeros);
-
-	// generate faulty core indices
-	faulty_cores.reset();
-	if (simulation_params.num_faulty_cores > 0){
-		cores(span(0,simulation_params.num_faulty_cores-1)).ones();
-		random_shuffle(cores.begin(),cores.end());
-		faulty_cores = find(cores!=0) + 1;
-	}
 	// generate slow core indices
 	slow_cores.reset();
 	if (simulation_params.num_slow_cores > 0){
@@ -213,14 +200,8 @@ void save_results(const vector<string> alg_names, const vector <vector<performan
 	const unsigned int sig_dim, const unsigned int sparsity, const unsigned int meas_num, 
 	const unsigned int max_iter, simulation_parameters simulation_params, const int num_mc_runs){
 	// create directory
-	time_t rawtime;
-	struct tm * timeinfo;
-	time ( &rawtime );
-	timeinfo = localtime ( &rawtime );
-
-	string dir = "Results/" + parameter_to_sweep + " " + string(asctime (timeinfo));
-	mkdir("Results/", 0777);
-	mkdir(&dir[0],0777);
+	string dir = "../results";
+	mkdir(dir.c_str(),0777);
 
 
 	ofstream ofs;
@@ -231,8 +212,7 @@ void save_results(const vector<string> alg_names, const vector <vector<performan
 	ofs << "Sparsity: \t\t" << sparsity << endl<<endl;
 	ofs << "# of measurements: \t" << meas_num << endl<<endl;
 	ofs << "Max. # of Iters: \t" << max_iter << endl<<endl;
-	ofs << "# of Faulty Cores: \t" << simulation_params.num_faulty_cores << endl<<endl;
-	ofs << "# of Slow Cores: \t" << simulation_params.num_slow_cores;
+	ofs << "Percentage of Slow Cores: \t" << simulation_params.slow_cores_ratio * 100;
 	ofs << " (each sleeping for " << simulation_params.sleep_slow_cores/1000 << " ms )" << endl<<endl;
 	ofs << "Parameter to Sweep: " << parameter_to_sweep << ':' << endl;
 	ofs << parameter_to_sweep_values.t() << endl;
@@ -240,11 +220,15 @@ void save_results(const vector<string> alg_names, const vector <vector<performan
 	ofs.close();
 
 	char delimiter = '\t';
-	for (unsigned int i = 0; i < alg_names.size(); i++){
-		ofs.open (dir + "/" + alg_names[i] + ".csv", std::ofstream::out);
-		ofs << " time_avg;time_std;success_avg;success_std;time_per_iter_avg;time_per_iter_std;iter_avg;iter_std" << endl;
+	for (unsigned int i = 0; i < alg_names.size(); i++){        
+		if (sweep_metrics[0][i].time_avg < 0){
+			continue;
+		}
+		ofs.open (dir + "/" + alg_names[i] + ".txt", std::ofstream::out);
+		ofs << parameter_to_sweep << "\t time_avg\ttime_std\tsuccess_avg\tsuccess_std\ttime_per_iter_avg\ttime_per_iter_std\titer_avg\titer_std" << endl;
 		for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
-			ofs 	<< 1000* sweep_metrics[param][i].time_avg 	<< delimiter 
+			ofs << parameter_to_sweep_values[param]         << delimiter
+                << 1000* sweep_metrics[param][i].time_avg 	<< delimiter 
 				<< 1000* sweep_metrics[param][i].time_std 	<< delimiter
 				<< sweep_metrics[param][i].success_avg 		<< delimiter
 				<< sweep_metrics[param][i].success_std 		<< delimiter 
@@ -273,15 +257,16 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 	cout << setprecision(5);
 	string delimiter = "\t\t";
 	cout << endl;
+    cout << parameter_to_sweep << delimiter << "time_avg" << delimiter << "success_avg" 
+        << delimiter << "time/iter_avg"  << delimiter<< "iter_avg" << endl;
 	for (unsigned int i = 0; i < alg_names.size(); i++){
 		if (sweep_metrics[0][i].time_avg < 0){
 			continue;
 		}
 		cout << alg_names[i] << ":" << endl;
-		cout << "time_avg" << '\t' << "success_avg" << '\t' << "time/iter_avg" 
-			<< '\t' << "iter_avg" << endl;
 		for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
-			cout 	<< 1000* sweep_metrics[param][i].time_avg 	<< delimiter 
+			cout<< parameter_to_sweep_values[param]         << delimiter
+                << 1000* sweep_metrics[param][i].time_avg 	<< delimiter 
 				<< sweep_metrics[param][i].success_avg 		<< delimiter
 				<< 1000* sweep_metrics[param][i].time_per_iter_avg  << delimiter
 				<< sweep_metrics[param][i].iter_avg  		<< delimiter 
@@ -292,8 +277,6 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 		
 	}
 	cout << endl;
-	cout << "NOTE: negative values (if any) mean the corresponding algorithm was not executed" << endl;
-	cout << "(uncomment them in Functions.cpp)" << endl;
 	cout << "NOTE: Zero (if any) means the success rate of the corresponding algorithm is zero." << endl;
 	cout << "(increase maxIter, decrease sparsity, increase MC trials, ....)" << endl;
 }
@@ -303,55 +286,26 @@ void print_results(const vector<string> alg_names, const vector <vector<performa
 // ---------------------------------------------------
 // ----------- function: run_experiments--------------
 // ---------------------------------------------------
-void run_experiments(const vector<experiment> experiments, const vector <string> alg_names, unsigned int def_sig_dim, unsigned int def_sparsity, unsigned int def_meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters def_simulation_params,
+void run_experiments(const vector <string> alg_names, unsigned int sig_dim, unsigned int sparsity, unsigned int meas_num, const unsigned int max_iter, const double gamma, const double tol , const vec prob_vec, simulation_parameters simulation_params,
 	 const int num_mc_runs, const int SEED){
-	
-
-
 	cout << setprecision(3);
-	for (unsigned int exp = 0; exp < experiments.size(); exp++){	
-		string parameter_to_sweep = experiments[exp].parameter_to_sweep;
-		vec parameter_to_sweep_values = experiments[exp].parameter_to_sweep_values;	
-		vector <vector<performance_metrics>> sweep_metrics(parameter_to_sweep_values.n_elem);
-		cout << "Experiment #" << exp+1 << '/' << experiments.size();
-		cout << " Parameter to Sweep: " << parameter_to_sweep << ':' << endl;
+    string parameter_to_sweep = "Cores";
+    cout << " Parameter to Sweep: " << parameter_to_sweep << ':' << endl;
+    
+    vec parameter_to_sweep_values = floor(linspace(1,10,5));	
+    
+    vector <vector<performance_metrics>> sweep_metrics(parameter_to_sweep_values.n_elem);
 
-		unsigned int sparsity = def_sparsity;
-		unsigned sig_dim = def_sig_dim;
-		unsigned int meas_num = def_meas_num;
-		simulation_parameters simulation_params = def_simulation_params;
-
-		for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
-			if (parameter_to_sweep == "Cores"){
-				simulation_params.num_cores = int(parameter_to_sweep_values[param]);
-				simulation_params.num_slow_cores = (2 * simulation_params.num_cores) / 10; // FIXME: This should be set in main, not here
-				cout << simulation_params.num_cores << '\t' << flush;
-			}else if (parameter_to_sweep == "Sparsity"){
-				sparsity = parameter_to_sweep_values[param]*sig_dim/100.0;
-				cout << sparsity << '\t' << flush;
-			}else if (parameter_to_sweep == "Measurements"){
-				meas_num = parameter_to_sweep_values[param]*sig_dim/100.0;
-				cout << meas_num << '\t' << flush;
-			}else if (parameter_to_sweep == "Slow Cores"){
-				simulation_params.num_slow_cores = parameter_to_sweep_values[param];
-				cout << simulation_params.num_slow_cores << '\t' << flush;
-			}else if (parameter_to_sweep == "Sleep Time"){
-				simulation_params.sleep_slow_cores = parameter_to_sweep_values[param];
-				cout << simulation_params.sleep_slow_cores << '\t' << flush;
-			}else if (parameter_to_sweep == "Signal Dimension"){
-				sig_dim = parameter_to_sweep_values[param];
-				sparsity = 2*sig_dim/100;
-				meas_num = 30*sig_dim/100;
-				cout << sig_dim << '\t' << flush;
-			}	
-			sweep_metrics[param] =  run_mc_trials( sig_dim, sparsity, meas_num, max_iter, gamma, tol , prob_vec, simulation_params,  num_mc_runs,  SEED);
-		}
-		cout << endl;
-		// Print/Save
-		print_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, simulation_params, num_mc_runs);
-		save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, simulation_params, num_mc_runs);
-		
-	}
+    for (unsigned int param = 0; param <parameter_to_sweep_values.n_elem; param++ ){
+        simulation_params.num_cores = int(parameter_to_sweep_values[param]);
+        simulation_params.num_slow_cores = int(simulation_params.slow_cores_ratio * simulation_params.num_cores); 
+        cout << simulation_params.num_cores << '\t' << flush;
+        sweep_metrics[param] =  run_mc_trials(alg_names, sig_dim, sparsity, meas_num, max_iter, gamma, tol , prob_vec, simulation_params,  num_mc_runs,  SEED);
+    }
+    cout << endl;
+    // Print/Save
+    print_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, simulation_params, num_mc_runs);
+    save_results(alg_names, sweep_metrics, parameter_to_sweep, parameter_to_sweep_values, sig_dim, sparsity,  meas_num, max_iter, simulation_params, num_mc_runs);
 
 	return;
 }

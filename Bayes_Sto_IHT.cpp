@@ -120,11 +120,8 @@ void update_tally_bayesian(vec &pos_count, vec &neg_count, double &reliability_p
 vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec prob_vec,
 		const unsigned int max_iter, const double gamma,const double tol, 
 		unsigned int &num_iters, const simulation_parameters simulation_params){
-	uvec faulty_cores;
 	uvec slow_cores;
-	faulty_n_slow_cores(faulty_cores, slow_cores, simulation_params);
-	//cout << " slow " << slow_cores.t() << endl;
-	//cout <<" faulty " << faulty_cores.t() << endl;
+	set_slow_cores(slow_cores, simulation_params);
 
 	const unsigned int sig_dim = A.n_cols;
 	// initialization of variables that are SHARED among cores
@@ -138,7 +135,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 	// parallel section of the code starts here
 	#pragma omp parallel num_threads(simulation_params.num_cores)
 	{
-	//#pragma omp single // a single core executes the following line
 
 	// initializaiotn of variables that are LOCAL to each core
 	uvec updated_indices;
@@ -162,7 +158,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 			const mat A_supp = A.cols(est_supp);
 			x_hat_local.zeros();
 			x_hat_local(est_supp) = solve(A_supp,y);
-			//cout << i << ':' << norm (y - A*x_hat_local) << endl;
 			if (norm (y - A*x_hat_local) < tol || i >= max_iter){
 				x_hat_total = x_hat_local;
 				done = true;
@@ -180,12 +175,8 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 
 		// update the local estimate of the support
 		uvec est_supp_local;
-		if (any( faulty_cores == omp_get_thread_num())  ){
-			est_supp_local = Faulty_Sto_IHT_async_iteration(x_hat_local, sparsity);
-		}else{
-			est_supp_local = Sto_IHT_async_iteration(x_hat_local, tally, A, y, 	
-				sparsity, prob_vec, gamma);
-		}
+        est_supp_local = Sto_IHT_async_iteration(x_hat_local, tally, A, y, 	
+            sparsity, prob_vec, gamma);
 
 		// generate support data
 		support_data.fill(-1);support_data.elem(est_supp_local).ones();	
@@ -197,7 +188,6 @@ vec bayesian_Sto_IHT(const mat &A, const vec &y, const int sparsity, const vec p
 	// parallel section of the code ends here
 
 	num_iters = i;
-	//cout << "#iterations = " << i << endl;
 	return x_hat_total;
 }
 
